@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,13 +35,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.Navigation.findNavController
-import com.leinardi.android.speeddial.compose.FabWithLabel
-import com.leinardi.android.speeddial.compose.SpeedDial
-import com.leinardi.android.speeddial.compose.SpeedDialOverlay
-import com.leinardi.android.speeddial.compose.SpeedDialState
+import de.charlex.compose.BottomAppBarSpeedDialFloatingActionButton
+import de.charlex.compose.FloatingActionButtonItem
+import de.charlex.compose.SubSpeedDialFloatingActionButtons
+import de.charlex.compose.rememberSpeedDialFloatingActionButtonState
 import pwr.barwa.chat.Debug
 import pwr.barwa.chat.Greeting
 import pwr.barwa.chat.GreetingRoute
@@ -52,41 +53,13 @@ fun AuthenticatedLayout(
     navController: NavController,
     content: @Composable () -> Unit
 ) {
-    var speedDialState = rememberSaveable { mutableStateOf(SpeedDialState.Collapsed) }
-    var overlayVisible = rememberSaveable { mutableStateOf(speedDialState.value.isExpanded()) }
+    var fabState = rememberSpeedDialFloatingActionButtonState()
     ChatTheme {
         Scaffold(
             bottomBar = {
                 BottomNavigationBar(
                     navController = navController
                 )
-//                BottomAppBar(
-//                    actions = {
-//                        //Add 3 buttons, "Home", "Person", "Add"
-//                        Icon(
-//                            imageVector = Icons.Default.Home,
-//                            contentDescription = "Home",
-//                            modifier = Modifier.padding(16.dp)
-//                        )
-//                        Icon(
-//                            imageVector = Icons.Default.Person,
-//                            contentDescription = "Person",
-//                            modifier = Modifier.padding(16.dp)
-//                        )
-//                        Icon(
-//                            imageVector = Icons.Default.Add,
-//                            contentDescription = "Add",
-//                            modifier = Modifier.padding(16.dp)
-//                        )
-//                    },
-//                    floatingActionButton = {
-//                        BottomAppBarSpeedDialFloatingActionButton(
-//                            state = fabState
-//                        ) {
-//                            Icon(Icons.Default.Add, contentDescription = null)
-//                        }
-//                    }
-//                )
             },
             topBar = {
                 TopAppBar(
@@ -94,58 +67,47 @@ fun AuthenticatedLayout(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { /* Akcja FAB */ },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Dodaj")
-                }
-//                    SubSpeedDialFloatingActionButtons(
-//                        state = fabState,
-//                        items = listOf(
-//                            FloatingActionButtonItem(
-//                                icon = Icons.Default.Person,
-//                                label = "Person"
-//                            ) {
-//                                //TODO onClick
-//                            },
-//                            FloatingActionButtonItem(
-//                                icon = Icons.Default.Home,
-//                                label = "Home"
-//                            ) {
-//                                //TODO onClick
-//                            }
-//                        )
-//                    )
-//                    Spacer(modifier = Modifier.height(16.dp))
-//                    BottomAppBarSpeedDialFloatingActionButton(
-//                        state = fabState
-//                    ) {
-//                        Icon(Icons.Default.Add, contentDescription = null)
-//                    }
+                    BottomAppBarSpeedDialFloatingActionButton(
+                        state = fabState
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                    }
 
             },
             containerColor = MaterialTheme.colorScheme.background
         ) {
-            SpeedDialOverlay(
-                visible = overlayVisible.value,
-                onClick = {
-                    overlayVisible.value = false
-                    speedDialState.value = speedDialState.value.toggle()
-                },
-            )
             Surface(
                 modifier = Modifier.padding(it).fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
+
                 Box(
                     modifier = Modifier
+                        .padding(start = 16.dp)
                         .fillMaxSize()
-                        .padding(PaddingValues(0.dp))
                 ) {
                     content()
                 }
             }
+            SubSpeedDialFloatingActionButtons(
+                state = fabState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                items = listOf(
+                    FloatingActionButtonItem(
+                        icon = Icons.Default.Person,
+                        label = "Person"
+                    ) {
+                        //TODO onClick
+                    },
+                    FloatingActionButtonItem(
+                        icon = Icons.Default.Home,
+                        label = "Home"
+                    ) {
+                        //TODO onClick
+                    }
+                )
+            )
         }
     }
 }

@@ -92,5 +92,5 @@ dependencies {
     // optional - Paging 3 Integration
     implementation("androidx.room:room-paging:$room_version")
 
-    implementation("com.leinardi.android:speed-dial.compose:1.0.0-alpha04")
+    implementation("de.charlex.compose:speeddial-bottomappbar-material3:1.1.1")
 }
