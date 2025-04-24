@@ -11,14 +11,14 @@ interface UserDao {
     @Query("SELECT * FROM user")
     fun getAll(): List<User>
 
-    @Query("SELECT * FROM user WHERE email LIKE :email LIMIT 1")
-    fun findByEmail(email: String): User?
+    @Query("SELECT * FROM user WHERE username LIKE :username LIMIT 1")
+    fun findByUsername(username: String): User?
 
-    @Query("SELECT * FROM user WHERE password = :password and email = :email LIMIT 1")
-    fun login(email: String, password: String): User?
+    @Query("SELECT * FROM user WHERE password = :password and username = :username LIMIT 1")
+    fun login(username: String, password: String): User?
 
-    @Query("UPDATE user SET loggedIn = 1 where email = :email")
-    fun setLoggedIn(email: String)
+    @Query("UPDATE user SET loggedIn = 1 where username = :username")
+    fun setLoggedIn(username: String)
 
     @Query("UPDATE user set loggedIn=0")
     fun logout()

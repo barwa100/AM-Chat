@@ -13,19 +13,21 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): pwr.barwa.chat.data.dao.UserDao
 
     companion object {
-        const val DATABASE_NAME = "chat_database"
-        var instance: AppDatabase? = null
 
-        @Synchronized
-        fun getDatabase(context: Context): AppDatabase {
-            if (instance == null) {
-                instance = Room.databaseBuilder(
+        @Volatile
+        private var Instance : AppDatabase? = null
+        fun getInstance(context: Context): AppDatabase {
+            return Instance ?: synchronized(this) {
+                Room.databaseBuilder(
                     context,
                     AppDatabase::class.java,
-                    DATABASE_NAME
-                ).build()
+                    "chat_database"
+                ).fallbackToDestructiveMigration(true).build().also {
+                    Instance = it
+                }
             }
-            return instance!!
         }
+
     }
 }
+

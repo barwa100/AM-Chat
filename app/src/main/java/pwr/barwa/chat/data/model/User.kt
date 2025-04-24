@@ -10,22 +10,22 @@ import androidx.room.PrimaryKey
 data class User(
     @PrimaryKey(autoGenerate = true) val id: Long,
     @ColumnInfo(name = "display_name") val displayName: String,
-    @ColumnInfo(name = "email") val email: String,
+    @ColumnInfo(name = "username") val username: String,
     @ColumnInfo(name = "password") val password: String,
     val loggedIn: Boolean?
 ) {
-    constructor(displayName: String, email: String, password: String) : this(
+    constructor(displayName: String, username: String, password: String) : this(
         id = 0,
         displayName = displayName,
-        email = email,
+        username = username,
         password = password,
         loggedIn = null
     )
 
-    constructor(id: Long, displayName: String, email: String, password: String) : this(
+    constructor(id: Long, displayName: String, username: String, password: String) : this(
         id = id,
         displayName = displayName,
-        email = email,
+        username = username,
         password = password,
         loggedIn = null
     )

@@ -24,17 +24,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.Navigation.findNavController
 import pwr.barwa.chat.data.AppDatabase
+import pwr.barwa.chat.ui.AppViewModelProvider
+import pwr.barwa.chat.ui.LoginViewModel
 import pwr.barwa.chat.ui.layout.UnauthenticatedLayout
+import kotlin.coroutines.coroutineContext
 
 @Composable
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
-    onNavigateToRegister: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {},
+    viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 )
 {
-    val db = AppDatabase.getDatabase(currentRecomposeScope as Context)
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
