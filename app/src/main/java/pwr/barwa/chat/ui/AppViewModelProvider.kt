@@ -11,6 +11,9 @@ object AppViewModelProvider {
         initializer {
             LoginViewModel(chatApplication().container.database.userDao())
         }
+        initializer {
+            RegisterViewModel(chatApplication().container.database.userDao())
+        }
     }
 }
 fun CreationExtras.chatApplication() : ChatApplication =

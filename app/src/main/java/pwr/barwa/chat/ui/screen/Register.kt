@@ -16,18 +16,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import pwr.barwa.chat.ui.layout.UnauthenticatedLayout
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import pwr.barwa.chat.ui.AppViewModelProvider
+import pwr.barwa.chat.ui.RegisterViewModel
 
 @Composable
 fun Register(
     onRegisterClick: (String, String) -> Unit,
     onLoginClick: () -> Unit,
+    viewModel: RegisterViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -69,7 +75,16 @@ fun Register(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { onRegisterClick(username, password) },
+                onClick = {
+                    coroutineScope.launch {
+                        val newUser = viewModel.register(username, password)
+                        if (newUser != null) {
+                            onRegisterClick(username, password)
+                        } else {
+                            // Handle registration erro
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Zarejestruj się")

@@ -34,26 +34,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
 
-        val session = getUserSession(this)
-
+        var session = getUserSession(this)
+        val ctx = this
         setContent {
 
             val navController = rememberNavController()
-            val isAuthenticated = remember { mutableStateOf(true) }
+            val isAuthenticated = remember { mutableStateOf(false) }
             if (session != null) {
                 isAuthenticated.value = true
-                navController.navigate(GreetingRoute(session.first)) {
-                    popUpTo(Login) {
-                        inclusive = true
-                    }
-                }
-            } else {
+            }
 
                 MainLayout(isAuthenticated, navController)
                 {
                     NavHost(
                         navController = navController,
-                        startDestination = Register,
+                        startDestination = if(isAuthenticated.value) GreetingRoute(session?.first.toString()) else Login,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(0.dp)
@@ -63,6 +58,8 @@ class MainActivity : ComponentActivity() {
                                 onLoginClick = { username, password ->
                                     println(username + " " + password)
                                     isAuthenticated.value = true
+                                    saveUserSession(ctx, username, password)
+                                    session = getUserSession(ctx)
                                     navController.navigate(GreetingRoute(username)) {
                                         popUpTo(Login) {
                                             inclusive = true
@@ -83,6 +80,8 @@ class MainActivity : ComponentActivity() {
                                 onRegisterClick = { username, password ->
                                     println(username + " " + password)
                                     isAuthenticated.value = true
+                                    saveUserSession(ctx, username, password)
+                                    session = getUserSession(ctx)
                                     navController.navigate(GreetingRoute(username)) {
                                         popUpTo(Login) {
                                             inclusive = true
@@ -105,11 +104,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable<Debug> {
-                            Debug()
+                            Debug(onLogoutClick = {
+                                clearUserSession(ctx)
+                                isAuthenticated.value = false
+                                navController.navigate(Login) {
+                                    popUpTo(Login) {
+                                        inclusive = true
+                                    }
+                                }
+                            })
                         }
                     }
                 }
-            }
         }
     }
 
@@ -118,6 +124,14 @@ class MainActivity : ComponentActivity() {
         with(sharedPreferences.edit()) {
             putString("username", username)
             putString("password", password)
+            apply()
+        }
+    }
+
+    fun clearUserSession(context: Context) {
+        val sharedPreferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            clear()
             apply()
         }
     }

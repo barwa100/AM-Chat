@@ -18,6 +18,7 @@ import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,6 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.Navigation.findNavController
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.AppDatabase
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.LoginViewModel
@@ -39,8 +42,10 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 )
 {
+    val coroutineScope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
@@ -77,10 +82,31 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            //Add error message if login fails
+            if (!errorMessage.isBlank()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { onLoginClick(username, password) },
+                onClick = {
+                    // Launch in a coroutine scope
+                    coroutineScope.launch {
+                        // Perform login operation
+                        val user = viewModel.login(username, password)
+                        if (user != null) {
+                            onLoginClick(username, password)
+                        } else {
+                            // Handle login error
+                            errorMessage = "Invalid username or password"
+                            println("Invalid username or password")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Login")
