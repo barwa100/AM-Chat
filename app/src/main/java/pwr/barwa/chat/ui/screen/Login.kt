@@ -102,7 +102,7 @@ fun LoginScreen(
                             onLoginClick(username, password)
                         } else {
                             // Handle login error
-                            errorMessage = "Invalid username or password"
+                            errorMessage = "Nie znaleziono użytkownika o podanych danych"
                             println("Invalid username or password")
                         }
                     }

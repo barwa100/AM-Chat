@@ -25,8 +25,7 @@ fun Debug(
     )
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+            .padding(top = 32.dp)
     ) {
         Button(
             onClick = onLogoutClick
