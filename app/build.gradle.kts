@@ -93,4 +93,6 @@ dependencies {
     implementation("androidx.room:room-paging:$room_version")
 
     implementation("de.charlex.compose:speeddial-bottomappbar-material3:1.1.1")
+
+    implementation("com.microsoft.signalr:signalr:7.0.0")
 }
