@@ -15,7 +15,10 @@ object AppViewModelProvider {
             RegisterViewModel(chatApplication().container.database.userDao())
         }
         initializer {
-            ChatViewModel(chatApplication().container.signalRConnector)
+            ChatViewModel(chatApplication().container.database.chatDao())
+        }
+        initializer {
+            DebugViewModel(chatApplication().container.signalRConnector)
         }
     }
 }

@@ -28,12 +28,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pwr.barwa.chat.ui.AppViewModelProvider
-import pwr.barwa.chat.ui.ChatViewModel
+import pwr.barwa.chat.ui.DebugViewModel
 
 @Composable
 fun Debug(
     onLogoutClick: () -> Unit,
-    viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: DebugViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     // This is a placeholder for the debug screen
     // You can add your debug UI components here

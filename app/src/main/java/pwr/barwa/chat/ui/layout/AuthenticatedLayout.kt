@@ -42,6 +42,7 @@ import de.charlex.compose.BottomAppBarSpeedDialFloatingActionButton
 import de.charlex.compose.FloatingActionButtonItem
 import de.charlex.compose.SubSpeedDialFloatingActionButtons
 import de.charlex.compose.rememberSpeedDialFloatingActionButtonState
+import pwr.barwa.chat.Chats
 import pwr.barwa.chat.Debug
 import pwr.barwa.chat.Greeting
 import pwr.barwa.chat.GreetingRoute
@@ -124,9 +125,9 @@ fun BottomNavigationBar(
 
     val items = listOf(
         NavigationItem(
-            title = "Home1",
+            title = "Chaty",
             icon = Icons.Default.Home,
-            route = GreetingRoute("Test")
+            route = Chats
         ),
         NavigationItem(
             title = "Home1",

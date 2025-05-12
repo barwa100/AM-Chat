@@ -6,8 +6,16 @@ import android.os.PersistableBundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +34,12 @@ import pwr.barwa.chat.ui.screen.Debug
 import pwr.barwa.chat.ui.screen.LoginScreen
 import pwr.barwa.chat.ui.screen.Register
 import pwr.barwa.chat.ui.theme.ChatTheme
-import androidx.core.content.edit
+import androidx.compose.material3.Button
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import pwr.barwa.chat.ui.screen.ChatsScreen
+import pwr.barwa.chat.ui.screen.ChatDetailsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +53,7 @@ class MainActivity : ComponentActivity() {
 
             val navController = rememberNavController()
             val isAuthenticated = remember { mutableStateOf(false) }
+            var session by remember { mutableStateOf(getUserSession(ctx)) }
             if (session != null) {
                 isAuthenticated.value = true
             }
@@ -48,7 +62,8 @@ class MainActivity : ComponentActivity() {
                 {
                     NavHost(
                         navController = navController,
-                        startDestination = if(isAuthenticated.value) GreetingRoute(session?.first.toString()) else Login,
+                        startDestination = if(isAuthenticated.value) Chats else Login,
+//                        startDestination = if (isAuthenticated.value) Chats else Login,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(0.dp)
@@ -99,9 +114,67 @@ class MainActivity : ComponentActivity() {
                         }
                         composable<GreetingRoute> { backstack ->
                             val greeting = backstack.toRoute<GreetingRoute>()
-                            Greeting(
-                                greeting.name
+                            Greeting(greeting.name)
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                // Powitanie użytkownika
+                                Greeting(session?.first ?: "Guest")
+
+                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
+
+                                 //Przycisk do przejścia do ekranów chatów
+                                Button(
+                                    onClick = {navController.navigate(Chats)},
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Go to Chats")
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
+
+                                // Przycisk do wylogowania
+                                Button(
+                                    onClick = {
+                                        // Wyczyść sesję użytkownika
+                                        clearUserSession(ctx)
+
+                                        // Przejdź do ekranu logowania
+                                        navController.navigate(Login) {
+                                            popUpTo(GreetingRoute::class.java.name) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Logout")
+                                }
+                            }
+                        }
+                        composable<Chats> {
+                            session = getUserSession(ctx)
+                            ChatsScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onChatClick = { chatId ->
+                                    navController.navigate("chat_details/$chatId")
+                                }
                             )
+                        }
+                        composable("chat_details/{chatId}") { backStackEntry ->
+                            val chatId = backStackEntry.arguments?.getString("chatId")?.toLongOrNull()
+                            if (chatId != null) {
+                                ChatDetailsScreen(chatId = chatId)
+                            } else {
+                                Text("Invalid chat ID")
+                            }
                         }
                         composable<Debug> {
                             Debug(onLogoutClick = {
@@ -155,6 +228,8 @@ object Register
 @Serializable
 data class GreetingRoute(val name: String)
 @Serializable
+object Chats
+@Serializable
 object Debug
 @Composable
 fun Greeting(name: String) {
@@ -162,7 +237,6 @@ fun Greeting(name: String) {
         text = "Hello $name!"
     )
 }
-
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
@@ -170,3 +244,4 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+
