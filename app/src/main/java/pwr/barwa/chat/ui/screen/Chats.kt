@@ -41,35 +41,16 @@ fun ChatsScreen(
     val coroutineScope = rememberCoroutineScope()
     val chats by viewModel.chats.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chats") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.addDummyChat() }) {
-                Icon(Icons.Default.Add, contentDescription = "Add chat")
-            }
-        }
-    ) { paddingValues ->
         if (chats.isEmpty()) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No chats available")
             }
         } else {
             LazyColumn(
-                modifier = Modifier.padding(paddingValues)
             ) {
                 items(
                     count = chats.size,
@@ -78,7 +59,6 @@ fun ChatsScreen(
                         val chat = chats[index]
                         ChatItem(chat = chat, onClick = { onChatClick(chat.id) })
                         HorizontalDivider( //  linia o grubości 2.dp z marginesami bocznymi 16.dp.
-                            modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 2.dp,
                         )
 
@@ -86,7 +66,6 @@ fun ChatsScreen(
                 )
             }
         }
-    }
 }
 
 @Composable
@@ -94,7 +73,7 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(0.dp,16.dp)
             .clickable { /* Obsługa kliknięcia na czat */ }
     ) {
         Text(

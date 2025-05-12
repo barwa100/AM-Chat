@@ -10,9 +10,6 @@ interface ChatDao {
     @Insert
     suspend fun insert(chat: Chat): Long
 
-    @Insert
-    suspend fun insertAll(vararg chats: Chat) // Dodaj kilka chatow naraz
-
     @Query("SELECT * FROM chats ORDER BY timestamp DESC")
     suspend fun getAllChats(): List<Chat>
 }

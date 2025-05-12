@@ -34,7 +34,8 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
                 lastMessage = "General Kenobi."
             )
 
-            chatDao.insertAll(chat1, chat2)
+            chatDao.insert(chat1)
+            chatDao.insert(chat2)
             loadChats()
         }
     }

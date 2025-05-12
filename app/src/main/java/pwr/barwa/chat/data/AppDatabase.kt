@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [pwr.barwa.chat.data.model.User::class, pwr.barwa.chat.data.model.Chat::class],
-    version = 1,
+    version = 3,
     exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): pwr.barwa.chat.data.dao.UserDao

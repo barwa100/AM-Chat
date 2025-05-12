@@ -27,9 +27,6 @@ interface UserDao {
     fun getLoggedInUser(): User?
 
     @Insert
-    fun insertAll(vararg users: User) // Zwraca Unit()
-
-    @Insert
     suspend fun insertUser(user: User): Long  // Zwraca ID nowego użytkownika
 
     @Delete

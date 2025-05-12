@@ -6,15 +6,7 @@ import androidx.room.PrimaryKey
 import androidx.room.ForeignKey
 
 @Entity(
-    tableName = "chats",
-    foreignKeys = [
-        ForeignKey(
-            entity = User::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+    tableName = "chats"
 )
 data class Chat(
     @PrimaryKey(autoGenerate = true)

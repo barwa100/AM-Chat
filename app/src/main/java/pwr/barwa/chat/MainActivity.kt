@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                 {
                     NavHost(
                         navController = navController,
-                        startDestination = if(isAuthenticated.value) GreetingRoute(session?.first.toString()) else Login,
+                        startDestination = if(isAuthenticated.value) Chats else Login,
 //                        startDestination = if (isAuthenticated.value) Chats else Login,
                         modifier = Modifier
                             .fillMaxSize()
@@ -116,46 +116,46 @@ class MainActivity : ComponentActivity() {
                             val greeting = backstack.toRoute<GreetingRoute>()
                             Greeting(greeting.name)
 
-//                            Column(
-//                                modifier = Modifier
-//                                    .fillMaxSize()
-//                                    .padding(16.dp),
-//                                horizontalAlignment = Alignment.CenterHorizontally,
-//                                verticalArrangement = Arrangement.Center
-//                            ) {
-//                                // Powitanie użytkownika
-//                                Greeting(greeting.name)
-//
-//                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                // Powitanie użytkownika
+                                Greeting(session?.first ?: "Guest")
 
-                                // Przycisk do przejścia do ekranów chatów
-//                                Button(
-//                                    onClick = {navController.navigate(Chats)},
-//                                    modifier = Modifier.fillMaxWidth()
-//                                ) {
-//                                    Text("Go to Chats")
-//                                }
-//
-//                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
-//
-//                                // Przycisk do wylogowania
-//                                Button(
-//                                    onClick = {
-//                                        // Wyczyść sesję użytkownika
-//                                        clearUserSession(ctx)
-//
-//                                        // Przejdź do ekranu logowania
-//                                        navController.navigate(Login) {
-//                                            popUpTo(GreetingRoute::class.java.name) {
-//                                                inclusive = true
-//                                            }
-//                                        }
-//                                    },
-//                                    modifier = Modifier.fillMaxWidth()
-//                                ) {
-//                                    Text("Logout")
-//                                }
-//                            }
+                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
+
+                                 //Przycisk do przejścia do ekranów chatów
+                                Button(
+                                    onClick = {navController.navigate(Chats)},
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Go to Chats")
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
+
+                                // Przycisk do wylogowania
+                                Button(
+                                    onClick = {
+                                        // Wyczyść sesję użytkownika
+                                        clearUserSession(ctx)
+
+                                        // Przejdź do ekranu logowania
+                                        navController.navigate(Login) {
+                                            popUpTo(GreetingRoute::class.java.name) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Logout")
+                                }
+                            }
                         }
                         composable<Chats> {
                             session = getUserSession(ctx)
