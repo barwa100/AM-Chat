@@ -13,8 +13,8 @@ class RegisterViewModel(private val userDao: UserDao) : ViewModel() {
         return withContext(Dispatchers.IO) {
             val existingUser = userDao.findByUsername(username)
             return@withContext if (existingUser == null) {
-                val newUser = pwr.barwa.chat.data.model.User(username, username, password.sha256())
-                userDao.insertAll(newUser)
+                val newUser = pwr.barwa.chat.data.model.User(displayName = username, username = username, password = password.sha256())
+                userDao.insertUser(newUser)
                 newUser
             } else {
                 null
