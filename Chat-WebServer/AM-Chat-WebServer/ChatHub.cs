@@ -2,11 +2,11 @@
 
 namespace AM_Chat_WebServer;
 
-public class ChatHub : Hub
+public class ChatHub : Hub<IChatClient>
 {
     public async Task SendMessage(string msg)
     {
-        await Clients.All.SendAsync("ReceiveMessage", msg);
+        await Clients.All.ReceiveMessage(msg);
     }
     
 }

@@ -1,4 +1,5 @@
 using AM_Chat_WebServer.Data;
+using Microsoft.AspNetCore.SignalR;
 
 namespace AM_Chat_WebServer;
 
@@ -32,20 +33,10 @@ public class Program
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-            {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                        new WeatherForecast
-                        {
-                            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                            TemperatureC = Random.Shared.Next(-20, 55),
-                            Summary = summaries[Random.Shared.Next(summaries.Length)]
-                        })
-                    .ToArray();
-                return forecast;
-            })
-            .WithName("GetWeatherForecast");
+        app.MapGet("/send/{message}", (HttpContext context, IHubContext<ChatHub, IChatClient> chatHub, string message) =>
+        {
+            chatHub.Clients.All.ReceiveMessage(message);
+        });
 
         app.Run();
     }
