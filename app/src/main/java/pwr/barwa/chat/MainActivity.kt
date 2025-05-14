@@ -35,9 +35,13 @@ import pwr.barwa.chat.ui.screen.LoginScreen
 import pwr.barwa.chat.ui.screen.Register
 import pwr.barwa.chat.ui.theme.ChatTheme
 import androidx.compose.material3.Button
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.viewmodel.compose.viewModel
+import pwr.barwa.chat.ui.AppViewModelProvider
+import pwr.barwa.chat.ui.ChatViewModel
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
 
@@ -57,7 +61,7 @@ class MainActivity : ComponentActivity() {
             if (session != null) {
                 isAuthenticated.value = true
             }
-
+//
                 MainLayout(isAuthenticated, navController)
                 {
                     NavHost(
@@ -159,13 +163,16 @@ class MainActivity : ComponentActivity() {
                         }
                         composable<Chats> {
                             session = getUserSession(ctx)
+                            val viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+
                             ChatsScreen(
-                                onBackClick = {
-                                    navController.popBackStack()
-                                },
-                                onChatClick = { chatId ->
-                                    navController.navigate("chat_details/$chatId")
-                                }
+                                onBackClick = {navController.popBackStack()},
+                                onChatClick = { navController.navigate("chat_details/{chatId}")},
+                                onNewChatClick = { viewModel.onNewChatClick() },
+                                onCreateGroupClick = { viewModel.onNewGroupClick() },
+                                onDismissNewChatDialog = { viewModel.dismissNewChatDialog() },
+                                onDismissNewGroupDialog = { viewModel.dismissNewGroupDialog() },
+                                viewModel = viewModel
                             )
                         }
                         composable("chat_details/{chatId}") { backStackEntry ->

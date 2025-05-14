@@ -16,4 +16,5 @@ data class Chat(
     val lastMessage: String,
     @ColumnInfo(name = "timestamp")
     val timestamp: Long = System.currentTimeMillis(), // Store as timestamp
+    val isGroup: Boolean = false
 )
