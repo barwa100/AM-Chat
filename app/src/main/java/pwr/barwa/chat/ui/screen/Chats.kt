@@ -59,6 +59,7 @@ fun ChatsScreen(
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
     val chats by viewModel.chats.collectAsState()
     var expanded by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (chats.isEmpty()) {
@@ -220,7 +221,7 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(0.dp,16.dp)
-            .clickable { /* Obsługa kliknięcia na czat */ }
+            .clickable { onClick() }
     ) {
         Text(
             text = chat.name,

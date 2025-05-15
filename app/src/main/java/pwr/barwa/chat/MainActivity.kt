@@ -167,7 +167,9 @@ class MainActivity : ComponentActivity() {
 
                             ChatsScreen(
                                 onBackClick = {navController.popBackStack()},
-                                onChatClick = { navController.navigate("chat_details/{chatId}")},
+                                onChatClick = {chatId ->
+                                    println("Clicked chatId: $chatId")
+                                    navController.navigate("chat_details/$chatId")},
                                 onNewChatClick = { viewModel.onNewChatClick() },
                                 onCreateGroupClick = { viewModel.onNewGroupClick() },
                                 onDismissNewChatDialog = { viewModel.dismissNewChatDialog() },
@@ -180,7 +182,7 @@ class MainActivity : ComponentActivity() {
                             if (chatId != null) {
                                 ChatDetailsScreen(chatId = chatId)
                             } else {
-                                Text("Invalid chat ID")
+                                Text("Invalid chat")
                             }
                         }
                         composable<Debug> {
