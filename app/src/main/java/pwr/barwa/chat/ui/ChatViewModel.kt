@@ -15,6 +15,10 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
     private val _chats = MutableStateFlow<List<Chat>>(emptyList())
     val chats: StateFlow<List<Chat>> = _chats
 
+    //Zwracanie konkretnego czatu
+    private val _selectedChat = MutableStateFlow<Chat?>(null)
+    val selectedChat: StateFlow<Chat?> = _selectedChat
+
     // Stany dla dialogów
     private val _showNewChatDialog = MutableStateFlow(false)
     val showNewChatDialog: StateFlow<Boolean> = _showNewChatDialog
@@ -29,23 +33,6 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
     private fun loadChats() {
         viewModelScope.launch {
             _chats.value = chatDao.getAllChats()
-        }
-    }
-
-    fun addDummyChat() {
-        viewModelScope.launch {
-            val chat1 = Chat(
-                name = "New Chat ${System.currentTimeMillis()}",
-                lastMessage = "Hello there!"
-            )
-            val chat2 = Chat(
-                name = "New Chat ${System.currentTimeMillis()}",
-                lastMessage = "General Kenobi."
-            )
-
-            chatDao.insert(chat1)
-            chatDao.insert(chat2)
-            loadChats()
         }
     }
 
@@ -80,6 +67,12 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
             } catch (e: Exception) {
                 println("Błąd tworzenia grupy: ${e.message}")
             }
+        }
+    }
+
+    fun loadChatById(chatId: Long) {
+        viewModelScope.launch {
+            _selectedChat.value = chatDao.getChatById(chatId)
         }
     }
 

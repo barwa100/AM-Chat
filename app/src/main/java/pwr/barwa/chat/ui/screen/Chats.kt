@@ -1,5 +1,6 @@
 package pwr.barwa.chat.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -20,15 +19,11 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,21 +53,21 @@ fun ChatsScreen(
     val showNewChatDialog by viewModel.showNewChatDialog.collectAsState()
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
     val chats by viewModel.chats.collectAsState()
-    var expanded by remember { mutableStateOf(true) }
-    val coroutineScope = rememberCoroutineScope()
+    var expanded by remember { mutableStateOf(false) }
+    var chatName by remember { mutableStateOf("") }
+    var groupName by remember { mutableStateOf("") }
+    var members by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (chats.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No chats available")
             }
         } else {
-            LazyColumn(
-            ) {
+            LazyColumn {
                 items(
                     count = chats.size,
                     key = { index -> chats[index].id },
@@ -83,65 +78,58 @@ fun ChatsScreen(
                             //  linia o grubości 2.dp z marginesami bocznymi 16.dp.
                             thickness = 2.dp,
                         )
-
                     }
                 )
             }
         }
 
-        // Speed Dial FAB
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
             horizontalAlignment = Alignment.End
         ) {
-            if (expanded) {
-                // Opcja 1: Nowy czat
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        onNewChatClick()
-                        expanded = true
-                    },
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    icon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    text = { Text("New chat") }
-                )
-
-                // Opcja 2: Nowa grupa
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        onCreateGroupClick()
-                        expanded = true
-                    },
-                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                    text = { Text("New group") }
-                )
+            AnimatedVisibility(visible = expanded) {
+                Column(horizontalAlignment = Alignment.End) {
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            expanded = false
+                            onNewChatClick()
+                        },
+                        icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        text = { Text("New chat") },
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            expanded = false
+                            onCreateGroupClick()
+                        },
+                        icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        text = { Text("New group") }
+                    )
+                }
             }
 
-            // Główny przycisk Speed Dial
             FloatingActionButton(
                 onClick = { expanded = !expanded },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    if (expanded) Icons.Default.Close else Icons.Default.Add,
-                    contentDescription = if (expanded) "Close" else "Add"
+                    imageVector = if (expanded) Icons.Default.Close else Icons.Default.Add,
+                    contentDescription = "Add"
                 )
             }
         }
 
-        // Nowy czat - Dialog
+        // Dialog: New Chat
         if (showNewChatDialog) {
-            var chatName by remember { mutableStateOf("") }
-
             AlertDialog(
                 onDismissRequest = onDismissNewChatDialog,
-                title = { Text("Rozpocznij nowy czat") },
+                title = { Text("Start New Chat") },
                 text = {
                     Column {
-                        Text("Wprowadź nazwę czatu")
+                        Text("Enter chat name:")
                         TextField(
                             value = chatName,
                             onValueChange = { chatName = it },
@@ -157,37 +145,34 @@ fun ChatsScreen(
                         },
                         enabled = chatName.isNotBlank()
                     ) {
-                        Text("Rozpocznij")
+                        Text("Start")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismissNewChatDialog) {
-                        Text("Anuluj")
+                        Text("Cancel")
                     }
                 }
             )
         }
 
-// Nowa grupa - Dialog
+        // Dialog: New Group
         if (showNewGroupDialog) {
-            var groupName by remember { mutableStateOf("") }
-            var members by remember { mutableStateOf("") }
-
             AlertDialog(
                 onDismissRequest = onDismissNewGroupDialog,
-                title = { Text("Stwórz nową grupę") },
+                title = { Text("Create New Group") },
                 text = {
                     Column {
                         TextField(
                             value = groupName,
                             onValueChange = { groupName = it },
-                            label = { Text("Nazwa grupy") },
+                            label = { Text("Group Name") },
                             modifier = Modifier.fillMaxWidth()
                         )
                         TextField(
                             value = members,
                             onValueChange = { members = it },
-                            label = { Text("Uczestnicy (oddziel przecinkami)") },
+                            label = { Text("Members (comma-separated)") },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -201,19 +186,18 @@ fun ChatsScreen(
                         },
                         enabled = groupName.isNotBlank() && members.isNotBlank()
                     ) {
-                        Text("Stwórz")
+                        Text("Create")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = onDismissNewGroupDialog) {
-                        Text("Anuluj")
+                        Text("Cancel")
                     }
                 }
             )
         }
     }
 }
-
 
 @Composable
 fun ChatItem(chat: Chat, onClick: () -> Unit) {

@@ -185,6 +185,9 @@ class MainActivity : ComponentActivity() {
                                 Text("Invalid chat")
                             }
                         }
+                        composable<Contacts>{
+                            Text("Contacts")
+                        }
                         composable<Debug> {
                             Debug(onLogoutClick = {
                                 clearUserSession(ctx)
@@ -195,6 +198,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             })
+                        }
+                        composable<Settings>{
+                            Text("Settings")
                         }
                     }
                 }
@@ -240,6 +246,10 @@ data class GreetingRoute(val name: String)
 object Chats
 @Serializable
 object Debug
+@Serializable
+object Settings
+@Serializable
+object Contacts
 @Composable
 fun Greeting(name: String) {
     Text(

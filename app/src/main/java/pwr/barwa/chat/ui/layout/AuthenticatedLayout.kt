@@ -43,9 +43,11 @@ import de.charlex.compose.FloatingActionButtonItem
 import de.charlex.compose.SubSpeedDialFloatingActionButtons
 import de.charlex.compose.rememberSpeedDialFloatingActionButtonState
 import pwr.barwa.chat.Chats
+import pwr.barwa.chat.Contacts
 import pwr.barwa.chat.Debug
 import pwr.barwa.chat.Greeting
 import pwr.barwa.chat.GreetingRoute
+import pwr.barwa.chat.Settings
 import pwr.barwa.chat.ui.theme.ChatTheme
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -54,7 +56,6 @@ fun AuthenticatedLayout(
     navController: NavController,
     content: @Composable () -> Unit
 ) {
-    var fabState = rememberSpeedDialFloatingActionButtonState()
     ChatTheme {
         Scaffold(
             bottomBar = {
@@ -66,14 +67,6 @@ fun AuthenticatedLayout(
                 TopAppBar(
                     title = { Text("Chat App") }
                 )
-            },
-            floatingActionButton = {
-                    BottomAppBarSpeedDialFloatingActionButton(
-                        state = fabState
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                    }
-
             },
             containerColor = MaterialTheme.colorScheme.background
         ) {
@@ -90,25 +83,7 @@ fun AuthenticatedLayout(
                     content()
                 }
             }
-            SubSpeedDialFloatingActionButtons(
-                state = fabState,
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                items = listOf(
-                    FloatingActionButtonItem(
-                        icon = Icons.Default.Person,
-                        label = "Person"
-                    ) {
-                        //TODO onClick
-                    },
-                    FloatingActionButtonItem(
-                        icon = Icons.Default.Home,
-                        label = "Home"
-                    ) {
-                        //TODO onClick
-                    }
-                )
-            )
+
         }
     }
 }
@@ -135,9 +110,19 @@ fun BottomNavigationBar(
             route = GreetingRoute("Barwa")
         ),
         NavigationItem(
+            title = "Contacts",
+            icon = Icons.Default.AccountBox,
+            route = Contacts
+        ),
+        NavigationItem(
             title = "Debug",
             icon = Icons.Default.Person,
             route = Debug
+        ),
+        NavigationItem(
+            title = "Settings",
+            icon = Icons.Default.AccountBox,
+            route = Settings
         )
     )
 
