@@ -20,9 +20,11 @@ class SignalRConnector {
 
 
     suspend fun startConnection() {
+
         hubConnection.on("ReceiveMessage", { message ->
             _messages.value += message
         }, String::class.java)
+
         hubConnection.start().blockingAwait()
     }
     fun stopConnection() {

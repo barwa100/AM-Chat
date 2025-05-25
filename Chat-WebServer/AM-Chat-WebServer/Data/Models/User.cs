@@ -1,10 +1,15 @@
-﻿namespace AM_Chat_WebServer.Data.Models;
+﻿using Microsoft.AspNetCore.Identity;
 
-public class User : IIdentifiable
+namespace AM_Chat_WebServer.Data.Models;
+
+public class User : IdentityUser<long>
 {
-    public ulong Id { get; set; }
-    public string Username { get; set; }
-    public string Password { get; set; }
+    public User()
+    {
+        Channels = new List<Channel>();
+        Messages = new List<Message>();
+        Id = SnowflakeGenerator.Instance.Generator.NewSnowflake();
+    }
     public List<Channel> Channels { get; set; }
     public List<Message> Messages { get; set; }
 }
