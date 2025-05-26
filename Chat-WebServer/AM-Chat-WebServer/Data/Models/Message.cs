@@ -1,4 +1,6 @@
-﻿namespace AM_Chat_WebServer.Data.Models;
+﻿using AM_Chat_WebServer.Data.DTOs;
+
+namespace AM_Chat_WebServer.Data.Models;
 
 public class Message : Identifiable
 {
@@ -11,6 +13,20 @@ public class Message : Identifiable
     public MessageType Type { get; set; }
     public DateTimeOffset Created { get; set; }
     public DateTimeOffset? Updated { get; set; }
+
+    public MessageDTO ToDto()
+    {
+        return new MessageDTO
+        {
+            Id = Id,
+            SenderId = SenderId,
+            ChannelId = ChannelId,
+            Data = Data,
+            Type = Type,
+            Created = Created,
+            Updated = Updated
+        };
+    }
 }
 
 public enum MessageType

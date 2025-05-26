@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AM_Chat_WebServer.Data;
 
-public class ChatDbContext : IdentityDbContext<User, IdentityRole<long>, long>
+public class ChatDbContext : DbContext
 {
     public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options)
     {

@@ -1,5 +1,6 @@
 package pwr.barwa.chat.ui
 
+import android.window.SplashScreenView
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
@@ -19,6 +20,9 @@ object AppViewModelProvider {
         }
         initializer {
             DebugViewModel(chatApplication().container.signalRConnector)
+        }
+        initializer {
+            SessionViewModel(chatApplication().container.sharedPreferences)
         }
     }
 }

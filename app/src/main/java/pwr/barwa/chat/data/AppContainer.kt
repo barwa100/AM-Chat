@@ -7,6 +7,9 @@ class AppContainer(private val context: Context) {
         AppDatabase.getInstance(context)
     }
     val signalRConnector: SignalRConnector by lazy {
-        SignalRConnector.getInstance(context)
+        SignalRConnector.getInstance()
+    }
+    val sharedPreferences:  android.content.SharedPreferences by lazy {
+        context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
     }
 }
