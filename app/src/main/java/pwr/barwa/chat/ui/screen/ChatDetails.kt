@@ -20,6 +20,19 @@ import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,7 +42,8 @@ fun ChatDetailsScreen(
     viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val chat by viewModel.selectedChat.collectAsState()
-
+    val messages by viewModel.channelMessages.collectAsState()
+    val users by viewModel.channelMembers.collectAsState()
     // Załaduj czat
     LaunchedEffect(chatId) {
         viewModel.loadChatById(chatId)
@@ -48,14 +62,41 @@ fun ChatDetailsScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(padding)
         ) {
-            Text(text = "Details for chat ID: $chatId")
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
+                items(messages) { message ->
+                    val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(message.created))
+                    val userName = users.find { it.id == message.senderId }?.userName ?: message.senderId.toString()
+                    Text(text = "$userName: ${message.data}", color = Color.Black)
+                    Text(text = date, color = Color.Gray, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+            val (text, setText) = remember { mutableStateOf("") }
+            OutlinedTextField(
+                value = text,
+                onValueChange = setText,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Wpisz wiadomość...") }
+            )
+            Button(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        viewModel.sendMessage(text)
+                        setText("")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            ) {
+                Text("Wyślij")
+            }
         }
     }
 }
+

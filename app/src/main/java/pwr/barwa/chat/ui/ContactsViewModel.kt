@@ -10,12 +10,15 @@ import pwr.barwa.chat.data.dao.UserDao
 import pwr.barwa.chat.data.dto.UserDto
 
 class ContactsViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
-    private val _contacts = MutableStateFlow<List<UserDto>>( emptyList())
+    private val _contacts = MutableStateFlow<List<UserDto>>(emptyList())
     val contacts: StateFlow<List<UserDto>> = _contacts
 
     init {
         loadContacts()
         viewModelScope.launch {
+            signalRConnector.onContactAdded.addListener("ContactsView", {contact ->
+                _contacts.value += contact
+            })
             signalRConnector.contacts.collect { users ->
                 _contacts.value = users
             }
@@ -29,7 +32,6 @@ class ContactsViewModel(private val signalRConnector: SignalRConnector) : ViewMo
     }
 
     fun removeListeners() {
-        signalRConnector.onContactsReceived.removeListener("ContactsView")
         signalRConnector.onContactAdded.removeListener("ContactsView")
     }
 

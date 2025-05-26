@@ -9,8 +9,11 @@ import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dao.ChatDao
 import pwr.barwa.chat.data.dto.ChannelDto
+import pwr.barwa.chat.data.dto.MessageDto
+import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.data.model.Chat
 import pwr.barwa.chat.data.requests.CreateChannelRequest
+import pwr.barwa.chat.data.requests.SendTextMessage
 
 
 class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
@@ -27,6 +30,12 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     private val _showNewGroupDialog = MutableStateFlow(false)
     val showNewGroupDialog: StateFlow<Boolean> = _showNewGroupDialog
+
+    private val _channelMessages = MutableStateFlow<List<MessageDto>>(emptyList())
+    val channelMessages: StateFlow<List<MessageDto>> = _channelMessages
+
+    private val _channelMembers = MutableStateFlow<List<UserDto>>(emptyList())
+    val channelMembers: StateFlow<List<UserDto>> = _channelMembers
 
     init {
         loadChats()
@@ -90,6 +99,23 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
     fun loadChatById(chatId: Long) {
         viewModelScope.launch {
             signalRConnector.getChannel(chatId)
+            signalRConnector.getChannelUsers(chatId)
+            signalRConnector.getChannelMessages(chatId)
+        }
+    }
+
+    fun sendMessage(message: String) {
+        _selectedChat.value?.let { chat ->
+            viewModelScope.launch {
+                try {
+                    signalRConnector.sendMessage(SendTextMessage(
+                        channelId = chat.id,
+                        text = message
+                    ))
+                } catch (e: Exception) {
+                    println("Error sending message: ${e.message}")
+                }
+            }
         }
     }
 
