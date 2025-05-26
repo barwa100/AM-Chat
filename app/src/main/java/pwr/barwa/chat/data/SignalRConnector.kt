@@ -129,6 +129,9 @@ class SignalRConnector(val token: String) {
     fun getChannelUsers(channelId: Long) {
         hubConnection.send("GetChannelMembers", channelId)
     }
+    fun getChannel(channelId: Long) {
+        hubConnection.send("GetChannel", channelId)
+    }
     companion object {
 
         @Volatile

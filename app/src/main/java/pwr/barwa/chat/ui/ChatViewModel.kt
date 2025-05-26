@@ -5,17 +5,20 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dao.ChatDao
+import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.model.Chat
+import pwr.barwa.chat.data.requests.CreateChannelRequest
 
 
-class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
-    private val _chats = MutableStateFlow<List<Chat>>(emptyList())
-    val chats: StateFlow<List<Chat>> = _chats
+class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
+    private val _chats = MutableStateFlow<List<ChannelDto>>(emptyList())
+    val chats: StateFlow<List<ChannelDto>> = _chats
 
     //Zwracanie konkretnego czatu
-    private val _selectedChat = MutableStateFlow<Chat?>(null)
-    val selectedChat: StateFlow<Chat?> = _selectedChat
+    private val _selectedChat = MutableStateFlow<ChannelDto?>(null)
+    val selectedChat: StateFlow<ChannelDto?> = _selectedChat
 
     // Stany dla dialogów
     private val _showNewChatDialog = MutableStateFlow(false)
@@ -26,41 +29,46 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
 
     init {
         loadChats()
+        signalRConnector.onChannelReceived.addListener { channelDto ->
+            _selectedChat.value = channelDto
+        }
+        signalRConnector.onChannelCreated.addListener {
+            _chats.value += it
+        }
     }
 
     private fun loadChats() {
         viewModelScope.launch {
-            _chats.value = chatDao.getAllChats()
+            signalRConnector.requestChannelList()
+            _chats.value = signalRConnector.channels.value
+
         }
     }
 
     fun startNewChat(chatName: String, initialMessage: String = "") {
         viewModelScope.launch {
             try {
-                val newChat = Chat(
-                    name = chatName,
-                    lastMessage = initialMessage.ifEmpty { "Chat started" },
-                    timestamp = System.currentTimeMillis(),
-                    isGroup = false
+                signalRConnector.createChannel(
+                    CreateChannelRequest(
+                        name = chatName,
+                        members = listOf() // Add members if needed
+                    )
                 )
-                chatDao.insert(newChat)
-                loadChats()
             } catch (e: Exception) {
                 println("Chat start error: ${e.message}")
             }
         }
     }
 
-    fun createNewGroup(groupName: String, members: List<String>) {
+    fun createNewGroup(groupName: String, members: List<Long>) {
         viewModelScope.launch {
             try {
-                val newGroup = Chat(
-                    name = groupName,
-                    lastMessage = "Group created with ${members.size} members",
-                    timestamp = System.currentTimeMillis(),
-                    isGroup = true
+                signalRConnector.createChannel(
+                    CreateChannelRequest(
+                        name = groupName,
+                        members = members
+                    )
                 )
-                chatDao.insert(newGroup)
                 loadChats()
             } catch (e: Exception) {
                 println("Error creating group: ${e.message}")
@@ -70,7 +78,7 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
 
     fun loadChatById(chatId: Long) {
         viewModelScope.launch {
-            _selectedChat.value = chatDao.getChatById(chatId)
+            signalRConnector.channel
         }
     }
 

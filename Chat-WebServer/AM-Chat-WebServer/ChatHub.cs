@@ -302,4 +302,24 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         await Clients.Caller.GetChannelMembers(channel.Members.Select(m => m.ToDto()).ToList());
         return channel.Members;
     }
+    
+    public async Task<Channel> GetChannel(long channelId)
+    {
+        var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var channel = await dbContext.Channels
+            .Include(c => c.Members)
+            .FirstOrDefaultAsync(c => c.Id == channelId);
+        if (channel == null)
+        {
+            throw new InvalidOperationException("Channel not found");
+        }
+        
+        if (!channel.Members.Any(u => u.Id == id))
+        {
+            throw new InvalidOperationException("You are not a member of this channel");
+        }
+
+        await Clients.Caller.GetChannel(channel.ToDto());
+        return channel;
+    }
 }
