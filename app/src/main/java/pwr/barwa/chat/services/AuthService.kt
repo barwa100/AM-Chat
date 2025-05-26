@@ -10,7 +10,7 @@ import java.net.URL
 
 class AuthService {
     companion object {
-        const val URL_BASE: String = "http://n-gra1.scpslgame.pl:5000/"
+        const val URL_BASE: String = "http://51.75.129.73:5000/"
     }
     suspend fun login(username: String, password: String): Result<TokenResponse> {
         return withContext(Dispatchers.IO) {
