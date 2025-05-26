@@ -72,6 +72,8 @@ fun ChatsScreen(
     var groupName by remember { mutableStateOf("") }
     var members by remember { mutableStateOf("") }
 
+    viewModel.loadChats()
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.removeListeners()

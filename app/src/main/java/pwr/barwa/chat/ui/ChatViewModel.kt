@@ -14,6 +14,7 @@ import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.data.model.Chat
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendTextMessage
+import kotlin.math.sign
 
 
 class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
@@ -39,15 +40,29 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     init {
         loadChats()
+        signalRConnector.onChannelListReceived.addListener("ChatView", { channels ->
+            _chats.value = channels
+        })
         signalRConnector.onChannelReceived.addListener("ChatView", { channelDto ->
             _selectedChat.value = channelDto
-        })
-        signalRConnector.onChannelCreated.addListener("ChatView", {
-            _chats.value += it
         })
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
                 _chats.value = channels
+            }
+        }
+        viewModelScope.launch {
+            signalRConnector.messages.collect { messages ->
+                _channelMessages.value = messages.filter {
+                    _selectedChat.value?.id == it.channelId
+                }
+            }
+        }
+        viewModelScope.launch {
+            signalRConnector.users.collect { members ->
+                _channelMembers.value = members.filter {
+                    _selectedChat.value?.members?.contains(it.id) ?: false
+                }
             }
         }
     }
@@ -56,10 +71,10 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
     }
     fun removeListeners() {
         signalRConnector.onChannelReceived.removeListener("ChatView")
-        signalRConnector.onChannelCreated.removeListener("ChatView")
+        signalRConnector.onChannelListReceived.removeListener("ChatView")
     }
 
-    private fun loadChats() {
+    fun loadChats() {
         viewModelScope.launch {
             signalRConnector.requestChannelList()
         }
@@ -99,9 +114,11 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
     fun loadChatById(chatId: Long) {
         viewModelScope.launch {
             signalRConnector.getChannel(chatId)
+        }.also {
             signalRConnector.getChannelUsers(chatId)
             signalRConnector.getChannelMessages(chatId)
         }
+
     }
 
     fun sendMessage(message: String) {

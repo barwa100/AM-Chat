@@ -9,6 +9,6 @@ public class MessageDTO
     public long ChannelId { get; set; }
     public string Data { get; set; } = string.Empty;
     public MessageType Type { get; set; }
-    public DateTimeOffset Created { get; set; }
-    public DateTimeOffset? Updated { get; set; } = null;
+    public long Created { get; set; }
+    public long? Updated { get; set; } = null;
 }
