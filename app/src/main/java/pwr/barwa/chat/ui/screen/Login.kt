@@ -30,6 +30,7 @@ import androidx.navigation.Navigation.findNavController
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.AppDatabase
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.LoginViewModel
 import pwr.barwa.chat.ui.layout.UnauthenticatedLayout
@@ -63,6 +64,8 @@ fun LoginScreen(
                 value = username,
                 onValueChange = { username = it },
                 label = { Text("Username") },
+                placeholder = { Text("Wprowadź swoją nazwę użytkownika") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -98,7 +101,8 @@ fun LoginScreen(
                     coroutineScope.launch {
                         // Perform login operation
                         val user = viewModel.login(username, password)
-                        if (user != null) {
+                        if (user.isSuccess) {
+                            SignalRConnector.getInstance(user.getOrNull()!!.accessToken)
                             onLoginClick(username, password)
                         } else {
                             // Handle login error

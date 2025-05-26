@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.RegisterViewModel
 
@@ -36,6 +37,7 @@ fun Register(
     val coroutineScope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
@@ -71,17 +73,25 @@ fun Register(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
-
+            if (!errorMessage.isBlank()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = {
                     coroutineScope.launch {
                         val newUser = viewModel.register(username, password)
-                        if (newUser != null) {
+                        if (newUser.isSuccess) {
+                            SignalRConnector.getInstance(newUser.getOrNull()!!.accessToken)
                             onRegisterClick(username, password)
                         } else {
-                            // Handle registration erro
+                            errorMessage = newUser.exceptionOrNull()!!.message ?: "Unknown error during registration"
+                            println("Invalid username or password")
                         }
                     }
                 },

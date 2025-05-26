@@ -6,7 +6,7 @@ namespace AM_Chat_WebServer;
 
 public class SnowflakeGenerator : ValueGenerator<long>
 {
-    private Snowflakes.SnowflakeGenerator Generator { get; set; }
+    public Snowflakes.SnowflakeGenerator Generator { get; set; }
 
     public SnowflakeGenerator()
     {

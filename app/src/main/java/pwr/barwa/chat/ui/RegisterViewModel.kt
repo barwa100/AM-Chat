@@ -5,19 +5,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import pwr.barwa.chat.data.dao.UserDao
 import pwr.barwa.chat.data.model.User
+import pwr.barwa.chat.data.responses.TokenResponse
+import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.sha256
 
 class RegisterViewModel(private val userDao: UserDao) : ViewModel() {
-
-    suspend fun register(username: String, password: String): User? {
+    private val authService = AuthService()
+    suspend fun register(username: String, password: String): Result<TokenResponse> {
         return withContext(Dispatchers.IO) {
-            val existingUser = userDao.findByUsername(username)
-            return@withContext if (existingUser == null) {
-                val newUser = pwr.barwa.chat.data.model.User(displayName = username, username = username, password = password.sha256())
-                userDao.insertUser(newUser)
-                newUser
+            val registerResult = authService.register(username, password)
+            if (registerResult.isSuccess) {
+                val loginResult = authService.login(username, password)
+                loginResult.fold(
+                    onSuccess = { tokenResponse -> Result.success(tokenResponse) },
+                    onFailure = { error -> Result.failure(error) }
+                )
             } else {
-                null
+                Result.failure(registerResult.exceptionOrNull() ?: Exception("Unknown error during registration"))
             }
         }
     }
