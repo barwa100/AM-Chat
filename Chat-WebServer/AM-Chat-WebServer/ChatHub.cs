@@ -221,22 +221,22 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         return user.Contacts;
     }
     
-    public async Task AddContact(long contactId)
+    public async Task AddContact(string userName)
     {
         var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
-        var user = await dbContext.Users.FindAsync(id);
+        var user = await dbContext.Users.Include(x=>x.Contacts).FirstOrDefaultAsync(x => x.Id == id);
         if (user == null)
         {
             throw new InvalidOperationException("User not found");
         }
         
-        var contact = await dbContext.Users.FindAsync(contactId);
+        var contact = await dbContext.Users.FirstOrDefaultAsync(x => x.UserName == userName);
         if (contact == null)
         {
             throw new InvalidOperationException("Contact not found");
         }
         
-        if (user.Contacts.Any(c => c.Id == contactId))
+        if (user.Contacts.Any(c => c.Id == contact.Id))
         {
             throw new InvalidOperationException("Contact already exists");
         }

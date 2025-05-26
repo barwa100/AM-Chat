@@ -46,6 +46,7 @@ import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
+import pwr.barwa.chat.ui.screen.Contacts
 import pwr.barwa.chat.ui.screen.SplashScreen
 
 class MainActivity : ComponentActivity() {
@@ -185,7 +186,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable<Contacts>{
-                            Text("Contacts")
+                            Contacts()
                         }
                         composable<Debug> {
                             Debug(onLogoutClick = {

@@ -164,8 +164,8 @@ class SignalRConnector(val token: String) {
     fun getContactList() {
         hubConnection.send("GetContacts")
     }
-    fun addContact(userId: Long) {
-        hubConnection.send("AddContact", userId)
+    fun addContact(userName: String) {
+        hubConnection.send("AddContact", userName)
     }
     fun getChannelMessages(channelId: Long, beforeMessageId: Long? = null, limit: Int = 50) {
         hubConnection.send("GetChannelMessages", channelId, beforeMessageId, limit)

@@ -24,6 +24,9 @@ object AppViewModelProvider {
         initializer {
             SessionViewModel(chatApplication().container.sharedPreferences)
         }
+        initializer {
+            ContactsViewModel(chatApplication().container.signalRConnector)
+        }
     }
 }
 fun CreationExtras.chatApplication() : ChatApplication =
