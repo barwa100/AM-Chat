@@ -30,17 +30,24 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     init {
         loadChats()
-        signalRConnector.onChannelReceived.addListener { channelDto ->
+        signalRConnector.onChannelReceived.addListener("ChatView", { channelDto ->
             _selectedChat.value = channelDto
-        }
-        signalRConnector.onChannelCreated.addListener {
+        })
+        signalRConnector.onChannelCreated.addListener("ChatView", {
             _chats.value += it
-        }
+        })
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
                 _chats.value = channels
             }
         }
+    }
+    fun onChannelReceived(channel: ChannelDto) {
+        _selectedChat.value = channel
+    }
+    fun removeListeners() {
+        signalRConnector.onChannelReceived.removeListener("ChatView")
+        signalRConnector.onChannelCreated.removeListener("ChatView")
     }
 
     private fun loadChats() {

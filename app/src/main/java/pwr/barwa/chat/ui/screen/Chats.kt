@@ -47,6 +47,7 @@ import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material.DismissState
 import androidx.compose.material.Surface
+import androidx.compose.runtime.DisposableEffect
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageType
 
@@ -70,6 +71,12 @@ fun ChatsScreen(
     var chatName by remember { mutableStateOf("") }
     var groupName by remember { mutableStateOf("") }
     var members by remember { mutableStateOf("") }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.removeListeners()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (chats.isEmpty()) {

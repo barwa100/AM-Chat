@@ -69,6 +69,31 @@ public class Program
         {
             //chatHub.Clients.All.ReceiveMessage(message);
         });
+        app.MapGet("/channel/{username}", async (HttpContext context, IHubContext<ChatHub, IChatClient> chatHub, ChatDbContext dbContext, string username) =>
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(x => x.UserName == username);
+            if (user == null)
+            {
+                return Results.Problem("User not found", statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var channel = new Channel()
+            {
+                Name = "AM-Chat",
+                Members = new List<User>() { user }
+            };
+            dbContext.Channels.Add(channel);
+            await dbContext.SaveChangesAsync();
+            if (ChatHub.UserConnections.TryGetValue(user.Id, out var connections))
+            {
+                foreach (var connection in connections)
+                {
+                    await chatHub.Clients.Client(connection).ChannelCreated(channel.ToDto());
+                    await chatHub.Groups.AddToGroupAsync(connection, channel.Id.ToString());
+                }
+            }
+            return Results.Ok(channel.ToDto());
+        });
         app.UseSerilogRequestLogging();
         app.Run();
     }

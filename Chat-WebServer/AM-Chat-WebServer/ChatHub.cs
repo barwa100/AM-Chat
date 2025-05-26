@@ -13,7 +13,7 @@ namespace AM_Chat_WebServer;
 [Authorize]
 public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<IChatClient>
 {
-    private static readonly ConcurrentDictionary<long, HashSet<string>> UserConnections = new();
+    public static readonly ConcurrentDictionary<long, HashSet<string>> UserConnections = new();
 
     public override async Task OnConnectedAsync()
     {
