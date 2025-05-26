@@ -87,7 +87,7 @@ fun Register(
                     coroutineScope.launch {
                         val newUser = viewModel.register(username, password)
                         if (newUser.isSuccess) {
-                            SignalRConnector.getInstance(newUser.getOrNull()!!.accessToken)
+                            SignalRConnector.getInstance(newUser.getOrNull()!!.accessToken).startConnection()
                             onRegisterClick(username, password)
                         } else {
                             errorMessage = newUser.exceptionOrNull()!!.message ?: "Unknown error during registration"

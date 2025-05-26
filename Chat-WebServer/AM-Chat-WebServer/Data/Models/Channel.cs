@@ -5,8 +5,8 @@ namespace AM_Chat_WebServer.Data.Models;
 public class Channel : Identifiable
 {
     public long Id { get; set; }
-    public List<User> Members { get; set; }
-    public List<Message> Messages { get; set; }
+    public List<User> Members { get; set; } = new();
+    public List<Message> Messages { get; set; } = new();
     public string Name { get; set; }
     
     public ChannelDTO ToDto()
@@ -16,7 +16,8 @@ public class Channel : Identifiable
             Id = Id,
             Members = Members.Select(m => m.Id).ToList(),
             Messages = Messages.Select(m => m.Id).ToList(),
-            Name = Name
+            Name = Name,
+            LastMessage = Messages.OrderByDescending(m => m.Created).FirstOrDefault()?.ToDto()
         };
     }
 }

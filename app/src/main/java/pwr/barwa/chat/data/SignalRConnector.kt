@@ -1,13 +1,19 @@
 package pwr.barwa.chat.data
 
 import android.content.Context
+import androidx.compose.runtime.currentRecomposeScope
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.room.Room
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.HubConnectionState
 import com.microsoft.signalr.TypeReference
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageDto
 import pwr.barwa.chat.data.dto.UserDto
@@ -48,6 +54,7 @@ class SignalRConnector(val token: String) {
     val onChannelCreated = Event<ChannelDto>()
     val onContactAdded = Event<UserDto>()
     val onUserAddedToChannel = Event<Triple<ChannelDto, UserDto, UserDto>>()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     suspend fun startConnection() {
         val channelType = object : TypeReference<List<ChannelDto>>() {}.type
@@ -62,7 +69,13 @@ class SignalRConnector(val token: String) {
         }, channelType)
 
         hubConnection.on("GetChannel", { channel: ChannelDto ->
-            _channels.value += channel
+            if (_channels.value.any { it.id == channel.id }) {
+                _channels.value = _channels.value.map {
+                    if (it.id == channel.id) channel else it
+                }
+            } else {
+                _channels.value += channel
+            }
             onChannelReceived.invoke(channel)
         }, ChannelDto::class.java)
 
@@ -97,7 +110,35 @@ class SignalRConnector(val token: String) {
             onUserAddedToChannel.invoke(Triple(channel, user, addedBy))
         }, ChannelDto::class.java, UserDto::class.java, UserDto::class.java)
 
-        hubConnection.start().blockingAwait()
+        hubConnection.onClosed { error ->
+            println("Połączenie zostało utracone: ${error?.message}")
+            scope.launch {
+                reconnect()
+            }
+        }
+
+        reconnect()
+    }
+    private suspend fun reconnect(){
+        var retryCount = 0
+        val maxRetries = 5000
+        val retryDelay = 2000L // 2 sekundy
+
+        while (hubConnection.connectionState != HubConnectionState.CONNECTED && retryCount < maxRetries) {
+            try {
+                println("Próba ponownego połączenia... ($retryCount)")
+                hubConnection.start().blockingAwait()
+                println("Połączono ponownie!")
+            } catch (e: Exception) {
+                println("Nie udało się połączyć: ${e.message}")
+                retryCount++
+                kotlinx.coroutines.delay(retryDelay)
+            }
+        }
+
+        if (hubConnection.connectionState != HubConnectionState.CONNECTED) {
+            println("Nie udało się połączyć po $maxRetries próbach.")
+        }
     }
     fun stopConnection() {
         hubConnection.stop()
@@ -109,6 +150,9 @@ class SignalRConnector(val token: String) {
         hubConnection.send("SendMediaMessage", message)
     }
     fun requestChannelList() {
+        if (hubConnection.connectionState != HubConnectionState.CONNECTED) {
+            return
+        }
         hubConnection.send("GetChannels")
     }
     fun createChannel(createChannelRequest: CreateChannelRequest) {

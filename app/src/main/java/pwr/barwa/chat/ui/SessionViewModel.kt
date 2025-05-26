@@ -19,7 +19,8 @@ class SessionViewModel(private val sharedPreferences: SharedPreferences) : ViewM
                     val token = result.getOrNull()?.accessToken
                     if (token != null) {
                         sharedPreferences.edit().putString("token", token).apply()
-                        SignalRConnector.getInstance(token)
+                        SignalRConnector.getInstance(token).startConnection()
+
                         Result.success(true)
                     } else {
                         Result.failure(Exception("Token is null"))

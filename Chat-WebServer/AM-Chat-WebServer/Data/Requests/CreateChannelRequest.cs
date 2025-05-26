@@ -2,6 +2,6 @@
 
 public class CreateChannelRequest
 {
-    public List<long> UserIds { get; set; }
+    public List<long>? UserIds { get; set; }
     public string Name { get; set; }
 }

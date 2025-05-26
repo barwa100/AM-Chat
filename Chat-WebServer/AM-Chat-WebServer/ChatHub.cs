@@ -130,6 +130,7 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
 
         var channels = await dbContext.Channels
             .Include(c => c.Members)
+            .Include(c => c.Messages)
             .Where(c => c.Members.Any(u => u.Id == id))
             .ToListAsync();
         await Clients.Caller.GetChannels(channels.Select(c => c.ToDto()).ToList());
@@ -139,6 +140,7 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
     public async Task<Channel> CreateChannel(CreateChannelRequest request)
     {
         var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        request.UserIds ??= new List<long>();
         request.UserIds.Add(id);
         var users = await dbContext.Users
             .Where(u => request.UserIds.Contains(u.Id))
@@ -308,6 +310,7 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
         var channel = await dbContext.Channels
             .Include(c => c.Members)
+            .Include(m => m.Messages)
             .FirstOrDefaultAsync(c => c.Id == channelId);
         if (channel == null)
         {

@@ -1,6 +1,6 @@
 package pwr.barwa.chat.data.requests
 
 class CreateChannelRequest(
-    val name: String,
-    val members: List<Long>
+    val Name: String,
+    val UserIds: List<Long>
 )

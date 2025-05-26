@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dao.ChatDao
@@ -35,13 +36,16 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
         signalRConnector.onChannelCreated.addListener {
             _chats.value += it
         }
+        viewModelScope.launch {
+            signalRConnector.channels.collect { channels ->
+                _chats.value = channels
+            }
+        }
     }
 
     private fun loadChats() {
         viewModelScope.launch {
             signalRConnector.requestChannelList()
-            _chats.value = signalRConnector.channels.value
-
         }
     }
 
@@ -50,8 +54,8 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
             try {
                 signalRConnector.createChannel(
                     CreateChannelRequest(
-                        name = chatName,
-                        members = listOf() // Add members if needed
+                        Name = chatName,
+                        UserIds = listOf() // Add members if needed
                     )
                 )
             } catch (e: Exception) {
@@ -65,8 +69,8 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
             try {
                 signalRConnector.createChannel(
                     CreateChannelRequest(
-                        name = groupName,
-                        members = members
+                        Name = groupName,
+                        UserIds = members
                     )
                 )
                 loadChats()
@@ -78,14 +82,14 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     fun loadChatById(chatId: Long) {
         viewModelScope.launch {
-            signalRConnector.channel
+            signalRConnector.getChannel(chatId)
         }
     }
 
     fun deleteChat(chatId: Long) {
         viewModelScope.launch {
             try {
-                chatDao.deleteChat(chatId)
+                //chatDao.deleteChat(chatId)
                 loadChats()
                 _selectedChat.value = null
             } catch (e: Exception) {

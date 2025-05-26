@@ -102,7 +102,7 @@ fun LoginScreen(
                         // Perform login operation
                         val user = viewModel.login(username, password)
                         if (user.isSuccess) {
-                            SignalRConnector.getInstance(user.getOrNull()!!.accessToken)
+                            SignalRConnector.getInstance(user.getOrNull()!!.accessToken).startConnection()
                             onLoginClick(username, password)
                         } else {
                             // Handle login error

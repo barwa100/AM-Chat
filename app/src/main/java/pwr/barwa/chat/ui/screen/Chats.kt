@@ -47,7 +47,8 @@ import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
 import androidx.compose.material.DismissState
 import androidx.compose.material.Surface
-
+import pwr.barwa.chat.data.dto.ChannelDto
+import pwr.barwa.chat.data.dto.MessageType
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -234,7 +235,7 @@ fun ChatsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            val memberList = members.split(",").map { it.trim() }
+                            val memberList = members.split(",").map { it.trim().toLong() }
                             viewModel.createNewGroup(groupName, memberList)
                             onDismissNewGroupDialog()
                         },
@@ -255,7 +256,7 @@ fun ChatsScreen(
 
 
 @Composable
-fun ChatItem(chat: Chat, onClick: () -> Unit) {
+fun ChatItem(chat: ChannelDto, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -267,7 +268,13 @@ fun ChatItem(chat: Chat, onClick: () -> Unit) {
             style = MaterialTheme.typography.titleMedium
         )
         Text(
-            text = chat.lastMessage,
+            text = chat.lastMessage?.let {
+                if (it.type == MessageType.TEXT) {
+                    it.data
+                } else {
+                    "Media message"
+                }
+            } ?: "No messages yet",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
