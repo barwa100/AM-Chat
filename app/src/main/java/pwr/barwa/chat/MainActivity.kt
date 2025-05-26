@@ -40,10 +40,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pwr.barwa.chat.SplashScreen
+import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
+import pwr.barwa.chat.ui.screen.SplashScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,16 +61,12 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val isAuthenticated = remember { mutableStateOf(false) }
             var session by remember { mutableStateOf(getUserSession(ctx)) }
-            if (session != null) {
-                isAuthenticated.value = true
-            }
 //
                 MainLayout(isAuthenticated, navController)
                 {
                     NavHost(
                         navController = navController,
-                        startDestination = if(isAuthenticated.value) Chats else Login,
-//                        startDestination = if (isAuthenticated.value) Chats else Login,
+                        startDestination = SplashScreen,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(0.dp)
@@ -202,6 +201,27 @@ class MainActivity : ComponentActivity() {
                         composable<Settings>{
                             Text("Settings")
                         }
+                        composable<SplashScreen> {
+                            SplashScreen(
+                                onActionComplete = { loggedIn ->
+                                    if (loggedIn){
+                                        navController.navigate(Chats){
+                                            isAuthenticated.value = true
+                                            popUpTo(SplashScreen) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        navController.navigate(Login) {
+                                            popUpTo(SplashScreen) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
         }
@@ -250,6 +270,8 @@ object Debug
 object Settings
 @Serializable
 object Contacts
+@Serializable
+object SplashScreen
 @Composable
 fun Greeting(name: String) {
     Text(

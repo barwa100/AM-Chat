@@ -84,7 +84,7 @@ fun Debug(
             }
             Spacer(modifier = Modifier.height(16.dp))
             messages.forEach { message ->
-                Text(text = message)
+                Text(text = message.data)
             }
 
         }
