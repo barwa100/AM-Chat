@@ -39,8 +39,8 @@ class SignalRConnector(val token: String) {
     private val _channels = MutableStateFlow<List<ChannelDto>>(emptyList())
     val channels: StateFlow<List<ChannelDto>> = _channels
 
-    private val _contacts = MutableStateFlow<List<Long>>(emptyList())
-    val contacts: StateFlow<List<Long>> = _contacts
+    private val _contacts = MutableStateFlow<List<UserDto>>(emptyList())
+    val contacts: StateFlow<List<UserDto>> = _contacts
 
     private val __users = MutableStateFlow<List<UserDto>>(emptyList())
     val users: StateFlow<List<UserDto>> = __users
@@ -80,7 +80,7 @@ class SignalRConnector(val token: String) {
         }, ChannelDto::class.java)
 
         hubConnection.on("GetContacts", { contacts: List<UserDto> ->
-            _contacts.value = contacts.map { it.id }
+            _contacts.value = contacts
             onContactsReceived.invoke(contacts)
         }, object : TypeReference<List<UserDto>>() {}.type)
 
@@ -100,7 +100,7 @@ class SignalRConnector(val token: String) {
         }, ChannelDto::class.java)
 
         hubConnection.on("NewContact", { user: UserDto ->
-            _contacts.value += user.id
+            _contacts.value += user
             onContactAdded.invoke(user)
         }, UserDto::class.java)
         hubConnection.on("UserAddedToChannel", { channel: ChannelDto, user: UserDto, addedBy: UserDto ->
@@ -164,7 +164,7 @@ class SignalRConnector(val token: String) {
     fun getContactList() {
         hubConnection.send("GetContacts")
     }
-    fun addContact(userId: String) {
+    fun addContact(userId: Long) {
         hubConnection.send("AddContact", userId)
     }
     fun getChannelMessages(channelId: Long, beforeMessageId: Long? = null, limit: Int = 50) {
