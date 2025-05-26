@@ -95,4 +95,7 @@ dependencies {
     implementation("de.charlex.compose:speeddial-bottomappbar-material3:1.1.1")
 
     implementation("com.microsoft.signalr:signalr:7.0.0")
+
+    implementation ("com.google.accompanist:accompanist-swiperefresh:0.32.0")
+    implementation ("androidx.compose.material:material:1.6.1")
 }

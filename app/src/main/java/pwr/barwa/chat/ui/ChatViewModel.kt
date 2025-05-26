@@ -2,14 +2,12 @@ package pwr.barwa.chat.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.dao.ChatDao
 import pwr.barwa.chat.data.model.Chat
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+
 
 class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
     private val _chats = MutableStateFlow<List<Chat>>(emptyList())
@@ -65,7 +63,7 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
                 chatDao.insert(newGroup)
                 loadChats()
             } catch (e: Exception) {
-                println("Błąd tworzenia grupy: ${e.message}")
+                println("Error creating group: ${e.message}")
             }
         }
     }
@@ -73,6 +71,18 @@ class ChatViewModel(private val chatDao: ChatDao) : ViewModel() {
     fun loadChatById(chatId: Long) {
         viewModelScope.launch {
             _selectedChat.value = chatDao.getChatById(chatId)
+        }
+    }
+
+    fun deleteChat(chatId: Long) {
+        viewModelScope.launch {
+            try {
+                chatDao.deleteChat(chatId)
+                loadChats()
+                _selectedChat.value = null
+            } catch (e: Exception) {
+                println("Error deleting chat: ${e.message}")
+            }
         }
     }
 

@@ -1,9 +1,11 @@
 package pwr.barwa.chat.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import pwr.barwa.chat.data.model.Chat
+import pwr.barwa.chat.data.model.User
 
 @Dao
 interface ChatDao {
@@ -15,4 +17,7 @@ interface ChatDao {
 
     @Query("SELECT * FROM chats WHERE id = :chatId")
     suspend fun getChatById(chatId: Long): Chat?
+
+    @Query("DELETE FROM chats WHERE id = :chatId")
+    suspend fun deleteChat(chatId: Long)
 }

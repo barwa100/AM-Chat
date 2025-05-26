@@ -1,6 +1,8 @@
 package pwr.barwa.chat.ui.screen
 
+import android.graphics.drawable.GradientDrawable.Orientation
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,15 +31,24 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pwr.barwa.chat.data.model.Chat
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.rememberDismissState
+import androidx.compose.material.DismissState
+import androidx.compose.material.Surface
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,17 +79,59 @@ fun ChatsScreen(
                 Text("No chats available")
             }
         } else {
+            @OptIn(ExperimentalMaterialApi::class)
             LazyColumn {
+//                items(
+//                    count = chats.size,
+//                    key = { index -> chats[index].id },
+//                    itemContent = { index ->
+//                        val chat = chats[index]
+//                        ChatItem(chat = chat, onClick = { onChatClick(chat.id) })
+//                        HorizontalDivider(
+//                            //  linia o grubości 2.dp z marginesami bocznymi 16.dp.
+//                            thickness = 2.dp,
+//                        )
+//                    }
+//                )
                 items(
                     count = chats.size,
                     key = { index -> chats[index].id },
                     itemContent = { index ->
                         val chat = chats[index]
-                        ChatItem(chat = chat, onClick = { onChatClick(chat.id) })
-                        HorizontalDivider(
-                            //  linia o grubości 2.dp z marginesami bocznymi 16.dp.
-                            thickness = 2.dp,
+                        val dismissState = rememberDismissState(
+                            confirmStateChange = {
+                                if (it == DismissValue.DismissedToStart) {
+                                    viewModel.deleteChat(chat.id)
+                                    true
+                                } else false
+                            }
                         )
+
+                        SwipeToDismiss(
+                            state = dismissState,
+                            background = {
+                                // Tło podczas przesuwania
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.White)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.Red
+                                    )
+                                }
+                            },
+                            directions = setOf(DismissDirection.EndToStart),
+                            dismissContent = {
+                                ChatItem(chat = chat, onClick = { onChatClick(chat.id) })
+                            }
+                        )
+
+                        HorizontalDivider(thickness = 2.dp)
                     }
                 )
             }
@@ -198,6 +252,7 @@ fun ChatsScreen(
         }
     }
 }
+
 
 @Composable
 fun ChatItem(chat: Chat, onClick: () -> Unit) {

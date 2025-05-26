@@ -13,20 +13,4 @@ data class User(
     @ColumnInfo(name = "username") val username: String,
     @ColumnInfo(name = "password") val password: String,
     val loggedIn: Boolean? = null
-) {
-//    constructor(displayName: String, username: String, password: String) : this(
-//        id = 0,
-//        displayName = displayName,
-//        username = username,
-//        password = password,
-//        loggedIn = null
-//    )
-//
-//    constructor(id: Long, displayName: String, username: String, password: String) : this(
-//        id = id,
-//        displayName = displayName,
-//        username = username,
-//        password = password,
-//        loggedIn = null
-//    )
-}
+)
