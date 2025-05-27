@@ -11,5 +11,5 @@ data class MessageDto(
 )
 
 enum class MessageType {
-    TEXT, IMAGE, VIDEO, OTHER
+    TEXT, IMAGE, VIDEO, AUDIO
 }

@@ -57,7 +57,6 @@ class SignalRConnector(val token: String) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     suspend fun startConnection() {
-        val channelType = object : TypeReference<List<ChannelDto>>() {}.type
         hubConnection.on("ReceiveMessage", { message ->
             _messages.value += message
             onMessageReceived.invoke(message)
@@ -66,7 +65,7 @@ class SignalRConnector(val token: String) {
         hubConnection.on("GetChannels", { channels: List<ChannelDto> ->
             _channels.value = channels
             onChannelListReceived.invoke(channels)
-        }, channelType)
+        }, object: TypeReference<List<ChannelDto>>() {}.type)
 
         hubConnection.on("GetChannel", { channel: ChannelDto ->
             if (_channels.value.any { it.id == channel.id }) {
@@ -150,9 +149,6 @@ class SignalRConnector(val token: String) {
         hubConnection.send("SendMediaMessage", message)
     }
     fun requestChannelList() {
-        if (hubConnection.connectionState != HubConnectionState.CONNECTED) {
-            return
-        }
         hubConnection.send("GetChannels")
     }
     fun createChannel(createChannelRequest: CreateChannelRequest) {

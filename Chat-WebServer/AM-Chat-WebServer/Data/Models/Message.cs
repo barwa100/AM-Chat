@@ -23,8 +23,8 @@ public class Message : Identifiable
             ChannelId = ChannelId,
             Data = Data,
             Type = Type,
-            Created = Created,
-            Updated = Updated
+            Created = Created.ToUnixTimeMilliseconds(),
+            Updated = Updated.HasValue ? Updated.Value.ToUnixTimeMilliseconds() : null
         };
     }
 }
