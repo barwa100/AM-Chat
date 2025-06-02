@@ -56,34 +56,39 @@ import pwr.barwa.chat.ui.theme.ChatTheme
 fun AuthenticatedLayout(
     navController: NavController,
     onLogoutClick: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable (PaddingValues) -> Unit
 ) {
     ChatTheme {
         Scaffold(
             bottomBar = {
                 BottomNavigationBar(
-                    navController = navController
-                )
+                    navController = navController,
+                    )
             },
             topBar = {
                 TopAppBar(
                     title = { Text("Chat App") },
                     actions = {
                         Button(
-                            onClick = onLogoutClick
+                            onClick = onLogoutClick,
+                            modifier = Modifier.padding(end = 16.dp) // Padding dla przycisku
                         ) {
                             Text(text = "Logout")
                         }
-                    }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp) // Padding dla top bar
                 )
             },
             content = { padding ->
-                Box(modifier = Modifier.padding(padding)) {
-                    content()
+                Box(
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(horizontal = 16.dp) // GLOBALNY PADDING
+                ) {
+                    content(padding)
                 }
             }
         )
-
     }
 }
 
@@ -117,11 +122,6 @@ fun BottomNavigationBar(
             title = "Debug",
             icon = Icons.Default.Person,
             route = Debug
-        ),
-        NavigationItem(
-            title = "Settings",
-            icon = Icons.Default.AccountBox,
-            route = Settings
         )
     )
 

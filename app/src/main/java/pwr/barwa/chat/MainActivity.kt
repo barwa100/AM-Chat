@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
                                 inclusive = true
                             }
                         }
-                    }
+                    },
                 )
                 {
                     NavHost(
@@ -209,9 +209,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             })
                         }
-                        composable<Settings>{
-                            Text("Settings")
-                        }
                         composable<SplashScreen> {
                             SplashScreen(
                                 onActionComplete = { loggedIn ->
@@ -277,8 +274,6 @@ data class GreetingRoute(val name: String)
 object Chats
 @Serializable
 object Debug
-@Serializable
-object Settings
 @Serializable
 object Contacts
 @Serializable
