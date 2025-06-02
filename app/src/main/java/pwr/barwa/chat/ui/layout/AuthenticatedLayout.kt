@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ import pwr.barwa.chat.ui.theme.ChatTheme
 @Composable
 fun AuthenticatedLayout(
     navController: NavController,
+    onLogoutClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
     ChatTheme {
@@ -65,26 +67,23 @@ fun AuthenticatedLayout(
             },
             topBar = {
                 TopAppBar(
-                    title = { Text("Chat App") }
+                    title = { Text("Chat App") },
+                    actions = {
+                        Button(
+                            onClick = onLogoutClick
+                        ) {
+                            Text(text = "Logout")
+                        }
+                    }
                 )
             },
-            containerColor = MaterialTheme.colorScheme.background
-        ) {
-            Surface(
-                modifier = Modifier.padding(it).fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-
-                Box(
-                    modifier = Modifier
-                        .padding(start = 16.dp)
-                        .fillMaxSize()
-                ) {
+            content = { padding ->
+                Box(modifier = Modifier.padding(padding)) {
                     content()
                 }
             }
+        )
 
-        }
     }
 }
 

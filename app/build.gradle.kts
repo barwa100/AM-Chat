@@ -98,5 +98,9 @@ dependencies {
     implementation("org.slf4j:slf4j-jdk14:1.7.25")
 
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.32.0")
+    //Swipe left
     implementation ("androidx.compose.material:material:1.6.1")
+    //Image
+    implementation("io.coil-kt:coil:2.6.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

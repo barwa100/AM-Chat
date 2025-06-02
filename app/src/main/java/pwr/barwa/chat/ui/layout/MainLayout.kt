@@ -8,14 +8,17 @@ import androidx.navigation.NavController
 fun MainLayout(
     isAuthenticated: MutableState<Boolean>,
     navController: NavController,
+    onLogoutClick: () -> Unit,
     content: @Composable (() -> Unit)
 ) {
     if(isAuthenticated.value) {
-        AuthenticatedLayout(navController) {
+        AuthenticatedLayout(
+            navController = navController,
+            onLogoutClick = onLogoutClick
+        ) {
             content()
         }
-    }
-    else {
+    } else {
         UnauthenticatedLayout {
             content()
         }

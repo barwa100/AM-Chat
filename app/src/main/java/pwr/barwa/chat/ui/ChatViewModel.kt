@@ -1,20 +1,22 @@
 package pwr.barwa.chat.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.SignalRConnector
-import pwr.barwa.chat.data.dao.ChatDao
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageDto
 import pwr.barwa.chat.data.dto.UserDto
-import pwr.barwa.chat.data.model.Chat
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendTextMessage
-import kotlin.math.sign
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 
 class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
@@ -37,6 +39,14 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     private val _channelMembers = MutableStateFlow<List<UserDto>>(emptyList())
     val channelMembers: StateFlow<List<UserDto>> = _channelMembers
+
+    // Upload states
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading
+
+    private val _uploadError = MutableStateFlow<String?>(null)
+    val uploadError: StateFlow<String?> = _uploadError
+
 
     init {
         loadChats()
@@ -80,33 +90,66 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
         }
     }
 
-    fun startNewChat(chatName: String, initialMessage: String = "") {
+    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") {
         viewModelScope.launch {
             try {
+                // Upload the image if one was selected
+                _isUploading.value = true
+                _uploadError.value = null
+                // Handle image upload only if uri is not null
+                val imageUrl = avatarUri?.let { uri ->
+                    try {
+                        uploadImage(context, uri)
+                    } catch (e: Exception) {
+                        _uploadError.value = "Image upload failed: ${e.message}"
+                        null
+                    }
+                }
+
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = chatName,
-                        UserIds = listOf() // Add members if needed
-                    )
+                        UserIds = listOf(), // Add members if needed
+                        Image = imageUrl// Add image if needed
+                        )
                 )
             } catch (e: Exception) {
-                println("Chat start error: ${e.message}")
+                _uploadError.value = "Failed to create chat: ${e.message}"
+            } finally {
+                _isUploading.value = false
             }
         }
     }
 
-    fun createNewGroup(groupName: String, members: List<Long>) {
+
+
+    fun createNewGroup(groupName: String, members: List<Long>, avatarUri: Uri?, context: Context) {
         viewModelScope.launch {
             try {
+                _isUploading.value = true
+                _uploadError.value = null
+                // Handle image upload only if uri is not null
+                val imageUrl = avatarUri?.let { uri ->
+                    try {
+                        uploadImage(context, uri)
+                    } catch (e: Exception) {
+                        _uploadError.value = "Image upload failed: ${e.message}"
+                        null
+                    }
+                }
+
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = groupName,
-                        UserIds = members
+                        UserIds = members,
+                        Image = imageUrl
                     )
                 )
                 loadChats()
             } catch (e: Exception) {
-                println("Error creating group: ${e.message}")
+                _uploadError.value = "Failed to create group: ${e.message}"
+            }finally {
+                _isUploading.value = false
             }
         }
     }
@@ -147,6 +190,39 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
             }
         }
     }
+// image
+    private suspend fun uploadImage(context: Context, uri: Uri): String {
+        return withContext(Dispatchers.IO) {
+            try {
+                val file = uri.toFile(context)
+                // Replace this with your actual server upload implementation
+                uploadToServer(file)
+            } catch (e: Exception) {
+                throw Exception("Failed to upload image: ${e.message}")
+            }
+        }
+    }
+
+    private fun Uri.toFile(context: Context): File {
+        val inputStream = context.contentResolver.openInputStream(this)
+            ?: throw Exception("Could not open file stream")
+
+        return File.createTempFile("upload_", ".jpg", context.cacheDir).apply {
+            FileOutputStream(this).use { output ->
+                inputStream.copyTo(output)
+            }
+        }
+    }
+
+    // TODO: Implement your actual server upload logic here
+    private suspend fun uploadToServer(file: File): String {
+        // Simulate network delay
+        kotlinx.coroutines.delay(500)
+        // This should be replaced with actual API call to your backend
+        return "https://example.com/uploads/${file.name}"
+    }
+
+
 
     // Obsługa dialogów
     fun onNewChatClick() { _showNewChatDialog.value = true }

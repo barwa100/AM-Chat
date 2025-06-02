@@ -63,7 +63,17 @@ class MainActivity : ComponentActivity() {
             val isAuthenticated = remember { mutableStateOf(false) }
             var session by remember { mutableStateOf(getUserSession(ctx)) }
 //
-                MainLayout(isAuthenticated, navController)
+                MainLayout(isAuthenticated, navController,
+                    onLogoutClick = {
+                        clearUserSession(ctx)
+                        isAuthenticated.value = false
+                        navController.navigate(Login) {
+                            popUpTo(Login) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
                 {
                     NavHost(
                         navController = navController,

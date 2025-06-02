@@ -34,10 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import pwr.barwa.chat.data.model.Chat
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
 import androidx.compose.material.DismissDirection
@@ -45,11 +43,26 @@ import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
-import androidx.compose.material.DismissState
-import androidx.compose.material.Surface
 import androidx.compose.runtime.DisposableEffect
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageType
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.rememberImagePainter
+import android.net.Uri
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
+import coil.compose.rememberAsyncImagePainter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +77,7 @@ fun ChatsScreen(
     viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
+
     val showNewChatDialog by viewModel.showNewChatDialog.collectAsState()
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
     val chats by viewModel.chats.collectAsState()
@@ -71,7 +85,14 @@ fun ChatsScreen(
     var chatName by remember { mutableStateOf("") }
     var groupName by remember { mutableStateOf("") }
     var members by remember { mutableStateOf("") }
+    var selectedAvatarUri by remember { mutableStateOf<Uri?>(null) }
+    var showImagePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
+    // Add this function to handle image selection
+    fun handleImageSelection(uri: Uri?) {
+        selectedAvatarUri = uri
+    }
     viewModel.loadChats()
 
     DisposableEffect(Unit) {
@@ -181,6 +202,35 @@ fun ChatsScreen(
                 title = { Text("Start New Chat") },
                 text = {
                     Column {
+                        //Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { showImagePicker = true }
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            if (selectedAvatarUri != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(selectedAvatarUri),
+                                    contentDescription = "Selected avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "Add avatar",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .align(Alignment.Center),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        //Chat name
                         Text("Enter chat name:")
                         TextField(
                             value = chatName,
@@ -192,8 +242,9 @@ fun ChatsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            viewModel.startNewChat(chatName)
+                            viewModel.startNewChat(chatName, selectedAvatarUri, context)
                             onDismissNewChatDialog()
+                            selectedAvatarUri = null // Reset for next use
                         },
                         enabled = chatName.isNotBlank()
                     ) {
@@ -201,7 +252,10 @@ fun ChatsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = onDismissNewChatDialog) {
+                    TextButton(onClick = {
+                        onDismissNewChatDialog()
+                        selectedAvatarUri = null // Reset for next use
+                    }) {
                         Text("Cancel")
                     }
                 }
@@ -215,6 +269,35 @@ fun ChatsScreen(
                 title = { Text("Create New Group") },
                 text = {
                     Column {
+                        // Avatar preview and selection
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { showImagePicker = true }
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            if (selectedAvatarUri != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(selectedAvatarUri),
+                                    contentDescription = "Selected avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "Add avatar",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .align(Alignment.Center),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         TextField(
                             value = groupName,
                             onValueChange = { groupName = it },
@@ -233,8 +316,9 @@ fun ChatsScreen(
                     Button(
                         onClick = {
                             val memberList = members.split(",").map { it.trim().toLong() }
-                            viewModel.createNewGroup(groupName, memberList)
+                            viewModel.createNewGroup(groupName, memberList, selectedAvatarUri, context)
                             onDismissNewGroupDialog()
+                            selectedAvatarUri = null // Reset for next use
                         },
                         enabled = groupName.isNotBlank() && members.isNotBlank()
                     ) {
@@ -242,9 +326,23 @@ fun ChatsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = onDismissNewGroupDialog) {
+                    TextButton(onClick = {
+                        onDismissNewGroupDialog()
+                        selectedAvatarUri = null // Reset for next use
+                    }) {
                         Text("Cancel")
                     }
+                }
+            )
+        }
+
+        // Add the image picker dialog
+        if (showImagePicker) {
+            ImagePickerDialog(
+                onDismiss = { showImagePicker = false },
+                onImageSelected = { uri ->
+                    selectedAvatarUri = uri
+                    showImagePicker = false
                 }
             )
         }
@@ -276,4 +374,46 @@ fun ChatItem(chat: ChannelDto, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+@Composable
+fun ImagePickerDialog(
+    onDismiss: () -> Unit,
+    onImageSelected: (Uri?) -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            onImageSelected(uri)
+        }
+    )
+
+    AlertDialog(
+        onDismissRequest = {
+            onImageSelected(null) // Anulowanie wyboru
+            onDismiss()
+        },
+        title = { Text("Select Avatar") },
+        text = { Text("Choose an image from your gallery") },
+        confirmButton = {
+            Button(
+                onClick = {
+                    launcher.launch("image/*")
+                }
+            ) {
+                Text("Gallery")
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = {
+                    onImageSelected(null) // Anulowanie wyboru
+                    onDismiss()
+                }
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }
