@@ -53,8 +53,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-
         var session = getUserSession(this)
         val ctx = this
         setContent {
@@ -74,7 +72,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                 )
-                {
+                { paddingValues ->
                     NavHost(
                         navController = navController,
                         startDestination = SplashScreen,

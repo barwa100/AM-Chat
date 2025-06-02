@@ -1,6 +1,7 @@
 package pwr.barwa.chat.ui.layout
 
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,19 +9,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,25 +34,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposableTarget
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import de.charlex.compose.BottomAppBarSpeedDialFloatingActionButton
-import de.charlex.compose.FloatingActionButtonItem
-import de.charlex.compose.SubSpeedDialFloatingActionButtons
-import de.charlex.compose.rememberSpeedDialFloatingActionButtonState
+
 import pwr.barwa.chat.Chats
 import pwr.barwa.chat.Contacts
 import pwr.barwa.chat.Debug
 import pwr.barwa.chat.Greeting
 import pwr.barwa.chat.GreetingRoute
-import pwr.barwa.chat.Settings
 import pwr.barwa.chat.ui.theme.ChatTheme
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -56,41 +58,86 @@ import pwr.barwa.chat.ui.theme.ChatTheme
 fun AuthenticatedLayout(
     navController: NavController,
     onLogoutClick: () -> Unit,
-    content: @Composable (PaddingValues) -> Unit
+    content: @Composable (PaddingValues) -> Unit,
+    onBackgroundColorChange: (Color) -> Unit,
+    backgroundColor: Color
 ) {
+
+    var showMenu by remember { mutableStateOf(false) }
+    val colorOptions = listOf(
+        Color(0xFFffddff), // Light Purple
+        Color(0xFFcaddff), // Light Blue
+        Color(0xFFFFFFFF), // White
+        Color(0xFFced0d2)  // Light Grey
+    )
+
     ChatTheme {
         Scaffold(
             bottomBar = {
-                BottomNavigationBar(
-                    navController = navController,
-                    )
+                BottomNavigationBar(navController = navController)
             },
             topBar = {
                 TopAppBar(
                     title = { Text("Chat App") },
                     actions = {
-                        Button(
-                            onClick = onLogoutClick,
-                            modifier = Modifier.padding(end = 16.dp) // Padding dla przycisku
-                        ) {
-                            Text(text = "Logout")
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Options"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                // Background color options
+                                colorOptions.forEach { color ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(24.dp)
+                                                    .background(color)
+                                            )
+                                        },
+                                        onClick = {
+                                            onBackgroundColorChange(color)
+                                            showMenu = false
+                                        }
+                                    )
+                                }
+                                Divider()
+                                // Logout option
+                                DropdownMenuItem(
+                                    text = { Text("Logout") },
+                                    onClick = {
+                                        onLogoutClick()
+                                        showMenu = false
+                                    }
+                                )
+                            }
                         }
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp) // Padding dla top bar
+                    }
                 )
             },
-            content = { padding ->
+            content = { scaffoldPadding ->
                 Box(
                     modifier = Modifier
-                        .padding(padding)
-                        .padding(horizontal = 16.dp) // GLOBALNY PADDING
+                        .padding(scaffoldPadding)
+                        .padding(all = 5.dp)
+                        .background(backgroundColor) // <-- tutaj ustawiamy kolor tła
+                        .fillMaxSize()
                 ) {
-                    content(padding)
+                    content(scaffoldPadding)
                 }
             }
         )
     }
 }
+
 
 
 @Composable

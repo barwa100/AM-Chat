@@ -133,7 +133,7 @@ fun ChatsScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color.White)
+                                        .background(Color.Transparent)
                                         .padding(horizontal = 20.dp),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
@@ -355,6 +355,7 @@ fun ChatItem(chat: ChannelDto, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color.Transparent)
             .padding(0.dp,16.dp)
             .clickable { onClick() }
     ) {
@@ -381,7 +382,6 @@ fun ImagePickerDialog(
     onDismiss: () -> Unit,
     onImageSelected: (Uri?) -> Unit
 ) {
-    val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
