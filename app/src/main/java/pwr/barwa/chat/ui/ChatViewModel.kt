@@ -96,22 +96,13 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
                 // Upload the image if one was selected
                 _isUploading.value = true
                 _uploadError.value = null
-                // Handle image upload only if uri is not null
-                val imageUrl = avatarUri?.let { uri ->
-                    try {
-                        uploadImage(context, uri)
-                    } catch (e: Exception) {
-                        _uploadError.value = "Image upload failed: ${e.message}"
-                        null
-                    }
-                }
-
+                val imageString: String? = avatarUri?.toString()
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = chatName,
                         UserIds = listOf(), // Add members if needed
-                        Image = imageUrl// Add image if needed
-                        )
+                        Image = imageString // Add image if needed
+                    )
                 )
             } catch (e: Exception) {
                 _uploadError.value = "Failed to create chat: ${e.message}"
@@ -128,21 +119,12 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
             try {
                 _isUploading.value = true
                 _uploadError.value = null
-                // Handle image upload only if uri is not null
-                val imageUrl = avatarUri?.let { uri ->
-                    try {
-                        uploadImage(context, uri)
-                    } catch (e: Exception) {
-                        _uploadError.value = "Image upload failed: ${e.message}"
-                        null
-                    }
-                }
-
+                val imageString: String? = avatarUri?.toString()
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = groupName,
                         UserIds = members,
-                        Image = imageUrl
+                        Image = imageString
                     )
                 )
                 loadChats()
@@ -182,46 +164,19 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
     fun deleteChat(chatId: Long) {
         viewModelScope.launch {
             try {
-                //chatDao.deleteChat(chatId)
+
+                // 2. Usuń na serwerze
+                signalRConnector.deleteChannel(chatId)
+
+                // 3. Odśwież dane
                 loadChats()
                 _selectedChat.value = null
+
             } catch (e: Exception) {
-                println("Error deleting chat: ${e.message}")
+                println("Error sending message: ${e.message}")
             }
         }
     }
-// image
-    private suspend fun uploadImage(context: Context, uri: Uri): String {
-        return withContext(Dispatchers.IO) {
-            try {
-                val file = uri.toFile(context)
-                // Replace this with your actual server upload implementation
-                uploadToServer(file)
-            } catch (e: Exception) {
-                throw Exception("Failed to upload image: ${e.message}")
-            }
-        }
-    }
-
-    private fun Uri.toFile(context: Context): File {
-        val inputStream = context.contentResolver.openInputStream(this)
-            ?: throw Exception("Could not open file stream")
-
-        return File.createTempFile("upload_", ".jpg", context.cacheDir).apply {
-            FileOutputStream(this).use { output ->
-                inputStream.copyTo(output)
-            }
-        }
-    }
-
-    // TODO: Implement your actual server upload logic here
-    private suspend fun uploadToServer(file: File): String {
-        // Simulate network delay
-        kotlinx.coroutines.delay(500)
-        // This should be replaced with actual API call to your backend
-        return "https://example.com/uploads/${file.name}"
-    }
-
 
 
     // Obsługa dialogów

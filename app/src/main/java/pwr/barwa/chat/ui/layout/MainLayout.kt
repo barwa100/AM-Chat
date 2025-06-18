@@ -20,7 +20,7 @@ fun MainLayout(
     onLogoutClick: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    var backgroundColor by remember { mutableStateOf(Color(0xFFBB86FC)) }
+    var backgroundColor by remember { mutableStateOf(Color(0xFFffffff)) }
 //tutaj coś nie sztymuje
     Box(modifier = Modifier.background(backgroundColor)) {
         if (isAuthenticated.value) {

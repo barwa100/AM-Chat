@@ -127,7 +127,6 @@ fun AuthenticatedLayout(
                 Box(
                     modifier = Modifier
                         .padding(scaffoldPadding)
-                        .padding(all = 5.dp)
                         .background(backgroundColor) // <-- tutaj ustawiamy kolor tła
                         .fillMaxSize()
                 ) {

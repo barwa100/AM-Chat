@@ -60,8 +60,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberImagePainter
 import android.net.Uri
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.ripple
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 
 
@@ -208,7 +215,11 @@ fun ChatsScreen(
                                 .size(100.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { showImagePicker = true }
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null, // Removes the ripple effect
+                                    onClick = { showImagePicker = true }
+                                )
                                 .align(Alignment.CenterHorizontally)
                         ) {
                             if (selectedAvatarUri != null) {
@@ -275,7 +286,11 @@ fun ChatsScreen(
                                 .size(100.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable { showImagePicker = true }
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null, // Removes the ripple effect
+                                    onClick = { showImagePicker = true }
+                                )
                                 .align(Alignment.CenterHorizontally)
                         ) {
                             if (selectedAvatarUri != null) {
@@ -352,29 +367,85 @@ fun ChatsScreen(
 
 @Composable
 fun ChatItem(chat: ChannelDto, onClick: () -> Unit) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .padding(0.dp,16.dp)
-            .clickable { onClick() }
+            .padding(all = 16.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(), // Explicit ripple
+                onClick = onClick
+            ),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = chat.name,
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = chat.lastMessage?.let {
-                if (it.type == MessageType.TEXT) {
-                    it.data
-                } else {
-                    "Media message"
-                }
-            } ?: "No messages yet",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Chat avatar/image
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!chat.image.isNullOrEmpty()) {
+                AsyncImage(
+                    model = chat.image,
+                    contentDescription = "Chat avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Fallback icon when no image is available
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Chat avatar",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = chat.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = chat.lastMessage?.let {
+                    when (it.type) {
+                        MessageType.TEXT -> it.data
+                        else -> "Media message"
+                    }
+                } ?: "No messages yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Last message time if available
+        chat.lastMessage?.let { message ->
+            Text(
+                text = formatMessageTime(message.data),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
     }
+}
+
+// Helper function to format message timestamp
+private fun formatMessageTime(timestamp: String): String {
+    // Implement your timestamp formatting logic here
+    // For example: return timestamp.substring(11, 16) // Just show hours:minutes
+    return timestamp // Return as-is for now
 }
 
 @Composable

@@ -54,6 +54,7 @@ class SignalRConnector(val token: String) {
     val onChannelCreated = Event<ChannelDto>()
     val onContactAdded = Event<UserDto>()
     val onUserAddedToChannel = Event<Triple<ChannelDto, UserDto, UserDto>>()
+    val onChannelDeleted = Event<Long>()
     private val scope = CoroutineScope(Dispatchers.IO)
 
     suspend fun startConnection() {
@@ -108,6 +109,11 @@ class SignalRConnector(val token: String) {
             }
             onUserAddedToChannel.invoke(Triple(channel, user, addedBy))
         }, ChannelDto::class.java, UserDto::class.java, UserDto::class.java)
+
+        hubConnection.on("ChannelDeleted", { deletedChannelId: Long ->
+            _channels.value = _channels.value.filter { it.id != deletedChannelId }
+            onChannelDeleted.invoke(deletedChannelId)
+        }, Long::class.java)
 
         hubConnection.onClosed { error ->
             println("Połączenie zostało utracone: ${error?.message}")
@@ -172,6 +178,10 @@ class SignalRConnector(val token: String) {
     fun getChannel(channelId: Long) {
         hubConnection.send("GetChannel", channelId)
     }
+    fun deleteChannel(channelId: Long) {
+        hubConnection.send("DeleteChannel", channelId) //lub chatId?
+    }
+
     companion object {
 
         @Volatile
