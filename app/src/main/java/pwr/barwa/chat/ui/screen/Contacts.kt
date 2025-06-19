@@ -58,18 +58,6 @@ fun Contacts(
             }
         } else {
             (LazyColumn {
-//                items(
-//                    count = chats.size,
-//                    key = { index -> chats[index].id },
-//                    itemContent = { index ->
-//                        val chat = chats[index]
-//                        ChatItem(chat = chat, onClick = { onChatClick(chat.id) })
-//                        HorizontalDivider(
-//                            //  linia o grubości 2.dp z marginesami bocznymi 16.dp.
-//                            thickness = 2.dp,
-//                        )
-//                    }
-//                )
         items(
             count = contacts.size,
             key = { index -> index },

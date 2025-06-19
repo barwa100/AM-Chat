@@ -1,13 +1,10 @@
 package pwr.barwa.chat.ui.layout
 
+import android.media.MediaPlayer
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,25 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposableTarget
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,14 +36,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 import pwr.barwa.chat.Chats
 import pwr.barwa.chat.Contacts
 import pwr.barwa.chat.Debug
-import pwr.barwa.chat.Greeting
 import pwr.barwa.chat.GreetingRoute
+import pwr.barwa.chat.R
 import pwr.barwa.chat.ui.theme.ChatTheme
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -147,6 +141,9 @@ fun BottomNavigationBar(
     val selectedNavigationIndex = rememberSaveable {
         mutableIntStateOf(0)
     }
+    val context = LocalContext.current
+    // Utwórz MediaPlayer
+    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.click) }
 
     val items = listOf(
         NavigationItem(
@@ -191,9 +188,19 @@ fun BottomNavigationBar(
                 selected = selectedNavigationIndex.intValue == index,
                 onClick = {
                     selectedNavigationIndex.intValue = index
+                    // Odtwórz dźwięk przed nawigacją
+                    mediaPlayer.seekTo(0) // Przewiń do początku jeśli dźwięk był już odtwarzany
+                    mediaPlayer.start()
+
                     navController.navigate(item.route)
                 }
             )
+        }
+    }
+    // Sprzątanie przy zniszczeniu komponentu
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer.release()
         }
     }
 }
