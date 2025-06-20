@@ -27,6 +27,9 @@ object AppViewModelProvider {
         initializer {
             ContactsViewModel(chatApplication().container.signalRConnector)
         }
+        initializer {
+            MyProfileViewModel(chatApplication().container.signalRConnector)
+        }
     }
 }
 fun CreationExtras.chatApplication() : ChatApplication =

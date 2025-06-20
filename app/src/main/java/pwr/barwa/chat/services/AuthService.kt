@@ -7,6 +7,7 @@ import pwr.barwa.chat.data.responses.TokenResponse
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import pwr.barwa.chat.data.dto.UserDto
 
 class AuthService {
     companion object {
@@ -50,7 +51,7 @@ class AuthService {
                     val errorResponse =
                         connection.errorStream.bufferedReader().use { it.readText() }
                     val jsonError = JSONObject(errorResponse)
-                    Result.failure(Exception("Podano błędne dane logowania."))
+                    Result.failure(Exception("Incorrect username or password."))
                 } else {
                     val errorResponse =
                         connection.errorStream.bufferedReader().use { it.readText() }
@@ -96,6 +97,50 @@ class AuthService {
                     Result.failure(Exception("Validation error: $errors"))
                 } else {
                     Result.failure(Exception("Unexpected error: ${connection.responseCode}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            } finally {
+                connection.disconnect()
+            }
+        }
+    }
+
+    suspend fun getUserByUsername(username: String): Result<UserDto> {
+        return withContext(Dispatchers.IO) {
+            val url = URL("$URL_BASE/Auth/me")
+            val connection = url.openConnection() as HttpURLConnection
+
+            try {
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(response)
+
+                    // Parsowanie JSON na UserDto (przykład, zmodyfikuj wg struktury JSON)
+                    val user = UserDto(
+                        id = json.getLong("id"),
+                        userName = json.getString("userName"),
+                        avatarUrl = if (json.isNull("avatarUrl")) null else json.getString("avatarUrl"),
+                        channels = json.getJSONArray("channels").let { array ->
+                            List(array.length()) { i -> array.getLong(i) }
+                        },
+                        messages = json.getJSONArray("messages").let { array ->
+                            List(array.length()) { i -> array.getLong(i) }
+                        },
+                        contacts = json.getJSONArray("contacts").let { array ->
+                            List(array.length()) { i -> array.getLong(i) }
+                        }
+                    )
+
+                    Result.success(user)
+                } else {
+                    val error = connection.errorStream.bufferedReader().use { it.readText() }
+                    Result.failure(Exception("Failed to get user: HTTP ${connection.responseCode}, $error"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)

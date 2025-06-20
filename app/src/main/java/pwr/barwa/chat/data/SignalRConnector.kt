@@ -1,9 +1,5 @@
 package pwr.barwa.chat.data
 
-import android.content.Context
-import androidx.compose.runtime.currentRecomposeScope
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.room.Room
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
@@ -21,7 +17,6 @@ import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendMediaMessage
 import pwr.barwa.chat.data.requests.SendTextMessage
 import pwr.barwa.chat.services.AuthService
-import java.lang.reflect.Type
 import kotlin.jvm.java
 
 class SignalRConnector(val token: String) {
@@ -44,6 +39,9 @@ class SignalRConnector(val token: String) {
 
     private val __users = MutableStateFlow<List<UserDto>>(emptyList())
     val users: StateFlow<List<UserDto>> = __users
+
+    private val _currentUser = MutableStateFlow<UserDto?>(null)
+    val currentUser: StateFlow<UserDto?> = _currentUser
 
     val onMessageReceived = Event<MessageDto>()
     val onChannelListReceived = Event<List<ChannelDto>>()
@@ -181,6 +179,11 @@ class SignalRConnector(val token: String) {
     fun deleteChannel(channelId: Long) {
         hubConnection.send("DeleteChannel", channelId) //lub chatId?
     }
+    fun setCurrentUser(user: UserDto) {
+        _currentUser.value = user
+    }
+    fun getCurrentUser(): UserDto? = _currentUser.value
+
 
     companion object {
 

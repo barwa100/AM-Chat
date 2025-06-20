@@ -2,20 +2,17 @@ package pwr.barwa.chat
 
 import android.content.Context
 import android.os.Bundle
-import android.os.PersistableBundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -28,24 +25,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import pwr.barwa.chat.ui.layout.AuthenticatedLayout
 import pwr.barwa.chat.ui.layout.MainLayout
 import pwr.barwa.chat.ui.screen.Debug
 import pwr.barwa.chat.ui.screen.LoginScreen
 import pwr.barwa.chat.ui.screen.Register
 import pwr.barwa.chat.ui.theme.ChatTheme
 import androidx.compose.material3.Button
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.viewModel
-import pwr.barwa.chat.MyProfile
-import pwr.barwa.chat.SplashScreen
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
+import pwr.barwa.chat.ui.CurrentUserHolder
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
 import pwr.barwa.chat.ui.screen.Contacts
@@ -199,17 +194,42 @@ class MainActivity : ComponentActivity() {
                         composable<Contacts>{
                             Contacts()
                         }
-                        composable<MyProfile>{
-                            val mockUser = UserDto(
-                                id = 1L,
-                                userName = "jan_kowalski",
-                                avatarUrl = null,
-                                channels = listOf(101, 102),
-                                messages = listOf(201, 202, 203),
-                                contacts = listOf(301, 302)
-                            )
+//                        composable<MyProfile>{
+//                            val mockUser = UserDto(
+//                                id = 1L,
+//                                userName = "jan_kowalski",
+//                                avatarUrl = null,
+//                                channels = listOf(101, 102),
+//                                messages = listOf(201, 202, 203),
+//                                contacts = listOf(301, 302)
+//                            )
+//
+//                            MyProfileScreen(mockUser, onChangePasswordClick = {}, onChangeAvatarClick = {})
+//                        }
+                        composable<MyProfile> {
+                            val ctx = this@MainActivity
+                            val session = getUserSession(ctx)
+                            var user by remember { mutableStateOf<UserDto?>(null) }
 
-                            MyProfileScreen(mockUser, onChangePasswordClick = {}, onChangeAvatarClick = {})
+                            LaunchedEffect(session) {
+                                if (session != null) {
+                                    val result = AuthService().getUserByUsername(session.first)
+                                    result.onSuccess { loadedUser ->
+                                        CurrentUserHolder.setCurrentUser(loadedUser)
+                                        user = loadedUser
+                                    }.onFailure {
+                                        Log.e("MyProfile", "Failed to load user", it)
+                                    }
+                                }
+                            }
+                            if (user != null) {
+                                MyProfileScreen(
+                                    onChangePasswordClick = { /* handle password change */ },
+                                    onChangeAvatarClick = { /* handle avatar change */ }
+                                )
+                            } else {
+                                Text("Loading user data...")
+                            }
                         }
                         composable<Debug> {
                             Debug(onLogoutClick = {

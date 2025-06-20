@@ -16,6 +16,12 @@ class RegisterViewModel(private val userDao: UserDao) : ViewModel() {
             val registerResult = authService.register(username, password)
             if (registerResult.isSuccess) {
                 val loginResult = authService.login(username, password)
+                val userResult = authService.getUserByUsername(username)
+                if (userResult.isSuccess) {
+                    userResult.getOrNull()?.let {
+                        CurrentUserHolder.setCurrentUser(it)
+                    }
+                }
                 loginResult.fold(
                     onSuccess = { tokenResponse -> Result.success(tokenResponse) },
                     onFailure = { error -> Result.failure(error) }
