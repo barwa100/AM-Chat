@@ -44,6 +44,7 @@ import pwr.barwa.chat.Chats
 import pwr.barwa.chat.Contacts
 import pwr.barwa.chat.Debug
 import pwr.barwa.chat.GreetingRoute
+import pwr.barwa.chat.MyProfile
 import pwr.barwa.chat.R
 import pwr.barwa.chat.ui.theme.ChatTheme
 
@@ -152,9 +153,9 @@ fun BottomNavigationBar(
             route = Chats
         ),
         NavigationItem(
-            title = "Home1",
+            title = "MyProfle",
             icon = Icons.Default.AccountBox,
-            route = GreetingRoute("Barwa")
+            route = MyProfile
         ),
         NavigationItem(
             title = "Contacts",

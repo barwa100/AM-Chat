@@ -40,13 +40,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pwr.barwa.chat.MyProfile
 import pwr.barwa.chat.SplashScreen
+import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
 import pwr.barwa.chat.ui.screen.Contacts
+import pwr.barwa.chat.ui.screen.MyProfileScreen
 import pwr.barwa.chat.ui.screen.SplashScreen
 
 class MainActivity : ComponentActivity() {
@@ -196,6 +199,18 @@ class MainActivity : ComponentActivity() {
                         composable<Contacts>{
                             Contacts()
                         }
+                        composable<MyProfile>{
+                            val mockUser = UserDto(
+                                id = 1L,
+                                userName = "jan_kowalski",
+                                avatarUrl = null,
+                                channels = listOf(101, 102),
+                                messages = listOf(201, 202, 203),
+                                contacts = listOf(301, 302)
+                            )
+
+                            MyProfileScreen(mockUser, onChangePasswordClick = {}, onChangeAvatarClick = {})
+                        }
                         composable<Debug> {
                             Debug(onLogoutClick = {
                                 clearUserSession(ctx)
@@ -274,6 +289,8 @@ object Chats
 object Debug
 @Serializable
 object Contacts
+@Serializable
+object MyProfile
 @Serializable
 object SplashScreen
 @Composable
