@@ -11,8 +11,12 @@ import pwr.barwa.chat.data.dto.UserDto
 
 class AuthService {
     companion object {
-        const val URL_BASE: String = "http://51.75.129.73:5000/"
+
+        //const val URL_BASE: String = "http://51.75.129.73:5000/"
+        const val URL_BASE: String = "http://10.0.2.2:5000/" // For Android emulator, use localhost as base URL
+        private var token: String? = null
     }
+
     suspend fun login(username: String, password: String): Result<TokenResponse> {
         return withContext(Dispatchers.IO) {
             val url = URL(URL_BASE + "Auth/login")
@@ -39,10 +43,11 @@ class AuthService {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
                     val jsonResponse = JSONObject(response)
 
+                    token = jsonResponse.getString("accessToken")
                     Result.success(
                         TokenResponse(
                             tokenType = jsonResponse.optString("tokenType"),
-                            accessToken = jsonResponse.getString("accessToken"),
+                            accessToken = token!!,
                             expiresIn = jsonResponse.getLong("expiresIn"),
                             refreshToken = jsonResponse.getString("refreshToken")
                         )
@@ -108,12 +113,13 @@ class AuthService {
 
     suspend fun getUserByUsername(username: String): Result<UserDto> {
         return withContext(Dispatchers.IO) {
-            val url = URL("$URL_BASE/Auth/me")
+            val url = URL(URL_BASE + "Auth/me")
             val connection = url.openConnection() as HttpURLConnection
 
             try {
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
 
