@@ -3,6 +3,7 @@ package pwr.barwa.chat.ui
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dao.UserDao
 import pwr.barwa.chat.data.model.User
 import pwr.barwa.chat.data.responses.TokenResponse
@@ -16,8 +17,10 @@ class RegisterViewModel(private val userDao: UserDao) : ViewModel() {
             val registerResult = authService.register(username, password)
             if (registerResult.isSuccess) {
                 val loginResult = authService.login(username, password)
+                SignalRConnector.getInstance(loginResult.getOrNull()?.accessToken).startConnection()
                 val userResult = authService.getUserByUsername(username)
                 if (userResult.isSuccess) {
+
                     userResult.getOrNull()?.let {
                         CurrentUserHolder.setCurrentUser(it)
                     }

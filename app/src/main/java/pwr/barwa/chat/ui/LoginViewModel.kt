@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dao.UserDao
 import pwr.barwa.chat.data.responses.TokenResponse
 import pwr.barwa.chat.services.AuthService
@@ -13,6 +14,7 @@ class LoginViewModel(private val userDao: UserDao) : ViewModel() {
     suspend fun login(username: String, password: String): Result<TokenResponse> {
         val loginResult = authService.login(username, password)
         if (loginResult.isSuccess) {
+            SignalRConnector.getInstance(loginResult.getOrNull()?.accessToken).startConnection()
             val userResult = authService.getUserByUsername(username)
             if (userResult.isSuccess) {
                 userResult.getOrNull()?.let {
