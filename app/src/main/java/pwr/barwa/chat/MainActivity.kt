@@ -40,6 +40,7 @@ import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatViewModel
+import pwr.barwa.chat.ui.ChatsListViewModel
 import pwr.barwa.chat.ui.CurrentUserHolder
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
@@ -169,7 +170,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable<Chats> {
                             session = getUserSession(ctx)
-                            val viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                            val viewModel: ChatsListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
                             ChatsScreen(
                                 onBackClick = {navController.popBackStack()},

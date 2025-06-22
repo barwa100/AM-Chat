@@ -18,6 +18,13 @@ object AppViewModelProvider {
         initializer {
             ChatViewModel(chatApplication().container.signalRConnector)
         }
+        // Nowe ViewModele
+        initializer {
+            ChatsListViewModel(chatApplication().container.signalRConnector)
+        }
+        initializer {
+            ChatDetailsViewModel(chatApplication().container.signalRConnector)
+        }
         initializer {
             DebugViewModel(chatApplication().container.signalRConnector)
         }
@@ -34,3 +41,4 @@ object AppViewModelProvider {
 }
 fun CreationExtras.chatApplication() : ChatApplication =
     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ChatApplication)
+

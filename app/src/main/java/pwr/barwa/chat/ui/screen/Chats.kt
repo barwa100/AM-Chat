@@ -1,6 +1,5 @@
 package pwr.barwa.chat.ui.screen
 
-import android.graphics.drawable.GradientDrawable.Orientation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,7 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pwr.barwa.chat.ui.AppViewModelProvider
-import pwr.barwa.chat.ui.ChatViewModel
+import pwr.barwa.chat.ui.ChatsListViewModel
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -49,23 +48,18 @@ import pwr.barwa.chat.data.dto.MessageType
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import coil.compose.rememberImagePainter
 import android.net.Uri
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ripple
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
@@ -81,7 +75,7 @@ fun ChatsScreen(
     onCreateGroupClick: () -> Unit,
     onDismissNewChatDialog: () -> Unit,
     onDismissNewGroupDialog: () -> Unit,
-    viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: ChatsListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
 
@@ -426,16 +420,6 @@ fun ChatItem(chat: ChannelDto, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        // Last message time if available
-        chat.lastMessage?.let { message ->
-            Text(
-                text = formatMessageTime(message.data),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp)
             )
         }
     }

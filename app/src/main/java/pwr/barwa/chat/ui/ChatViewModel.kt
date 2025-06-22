@@ -13,175 +13,53 @@ import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendTextMessage
 import android.content.Context
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 
-
+/**
+ * @deprecated Ta klasa została podzielona na ChatsListViewModel i ChatDetailsViewModel.
+ * Należy użyć jednej z tych klas zamiast tej.
+ */
+@Deprecated("Użyj ChatsListViewModel lub ChatDetailsViewModel zamiast tej klasy")
 class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
-    private val _chats = MutableStateFlow<List<ChannelDto>>(emptyList())
-    val chats: StateFlow<List<ChannelDto>> = _chats
+    // Tworzenie instancji nowych ViewModeli
+    private val chatsListViewModel = ChatsListViewModel(signalRConnector)
+    private val chatDetailsViewModel = ChatDetailsViewModel(signalRConnector)
 
-    //Zwracanie konkretnego czatu
-    private val _selectedChat = MutableStateFlow<ChannelDto?>(null)
-    val selectedChat: StateFlow<ChannelDto?> = _selectedChat
+    // Delegacja stanów do odpowiednich ViewModeli
+    val chats: StateFlow<List<ChannelDto>> = chatsListViewModel.chats
+    val selectedChat: StateFlow<ChannelDto?> = chatDetailsViewModel.selectedChat
+    val showNewChatDialog: StateFlow<Boolean> = chatsListViewModel.showNewChatDialog
+    val showNewGroupDialog: StateFlow<Boolean> = chatsListViewModel.showNewGroupDialog
+    val channelMessages: StateFlow<List<MessageDto>> = chatDetailsViewModel.channelMessages
+    val channelMembers: StateFlow<List<UserDto>> = chatDetailsViewModel.channelMembers
+    val isUploading: StateFlow<Boolean> = chatsListViewModel.isUploading
+    val uploadError: StateFlow<String?> = chatsListViewModel.uploadError
 
-    // Stany dla dialogów
-    private val _showNewChatDialog = MutableStateFlow(false)
-    val showNewChatDialog: StateFlow<Boolean> = _showNewChatDialog
+    // Delegacja funkcji do odpowiednich ViewModeli
+    fun onChannelReceived(channel: ChannelDto) = chatDetailsViewModel.onChannelReceived(channel)
 
-    private val _showNewGroupDialog = MutableStateFlow(false)
-    val showNewGroupDialog: StateFlow<Boolean> = _showNewGroupDialog
-
-    private val _channelMessages = MutableStateFlow<List<MessageDto>>(emptyList())
-    val channelMessages: StateFlow<List<MessageDto>> = _channelMessages
-
-    private val _channelMembers = MutableStateFlow<List<UserDto>>(emptyList())
-    val channelMembers: StateFlow<List<UserDto>> = _channelMembers
-
-    // Upload states
-    private val _isUploading = MutableStateFlow(false)
-    val isUploading: StateFlow<Boolean> = _isUploading
-
-    private val _uploadError = MutableStateFlow<String?>(null)
-    val uploadError: StateFlow<String?> = _uploadError
-
-
-    init {
-        loadChats()
-        signalRConnector.onChannelListReceived.addListener("ChatView", { channels ->
-            _chats.value = channels
-        })
-        signalRConnector.onChannelReceived.addListener("ChatView", { channelDto ->
-            _selectedChat.value = channelDto
-        })
-        viewModelScope.launch {
-            signalRConnector.channels.collect { channels ->
-                _chats.value = channels
-            }
-        }
-        viewModelScope.launch {
-            signalRConnector.messages.collect { messages ->
-                _channelMessages.value = messages.filter {
-                    _selectedChat.value?.id == it.channelId
-                }
-            }
-        }
-        viewModelScope.launch {
-            signalRConnector.users.collect { members ->
-                _channelMembers.value = members.filter {
-                    _selectedChat.value?.members?.contains(it.id) ?: false
-                }
-            }
-        }
-    }
-    fun onChannelReceived(channel: ChannelDto) {
-        _selectedChat.value = channel
-    }
     fun removeListeners() {
-        signalRConnector.onChannelReceived.removeListener("ChatView")
-        signalRConnector.onChannelListReceived.removeListener("ChatView")
+        chatsListViewModel.removeListeners()
+        chatDetailsViewModel.removeListeners()
     }
 
-    fun loadChats() {
-        viewModelScope.launch {
-            signalRConnector.requestChannelList()
-        }
-    }
+    fun loadChats() = chatsListViewModel.loadChats()
 
-    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") {
-        viewModelScope.launch {
-            try {
-                // Upload the image if one was selected
-                _isUploading.value = true
-                _uploadError.value = null
-                val imageString: String? = avatarUri?.toString()
-                signalRConnector.createChannel(
-                    CreateChannelRequest(
-                        Name = chatName,
-                        UserIds = listOf(), // Add members if needed
-                        Image = imageString // Add image if needed
-                    )
-                )
-            } catch (e: Exception) {
-                _uploadError.value = "Failed to create chat: ${e.message}"
-            } finally {
-                _isUploading.value = false
-            }
-        }
-    }
+    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") =
+        chatsListViewModel.startNewChat(chatName, avatarUri, context, initialMessage)
 
+    fun createNewGroup(groupName: String, members: List<Long>, avatarUri: Uri?, context: Context) =
+        chatsListViewModel.createNewGroup(groupName, members, avatarUri, context)
 
+    fun loadChatById(chatId: Long) = chatDetailsViewModel.loadChatById(chatId)
 
-    fun createNewGroup(groupName: String, members: List<Long>, avatarUri: Uri?, context: Context) {
-        viewModelScope.launch {
-            try {
-                _isUploading.value = true
-                _uploadError.value = null
-                val imageString: String? = avatarUri?.toString()
-                signalRConnector.createChannel(
-                    CreateChannelRequest(
-                        Name = groupName,
-                        UserIds = members,
-                        Image = imageString
-                    )
-                )
-                loadChats()
-            } catch (e: Exception) {
-                _uploadError.value = "Failed to create group: ${e.message}"
-            }finally {
-                _isUploading.value = false
-            }
-        }
-    }
+    fun sendMessage(message: String) = chatDetailsViewModel.sendMessage(message)
 
-    fun loadChatById(chatId: Long) {
-        viewModelScope.launch {
-            signalRConnector.getChannel(chatId)
-        }.also {
-            signalRConnector.getChannelUsers(chatId)
-            signalRConnector.getChannelMessages(chatId)
-        }
-
-    }
-
-    fun sendMessage(message: String) {
-        _selectedChat.value?.let { chat ->
-            viewModelScope.launch {
-                try {
-                    signalRConnector.sendMessage(SendTextMessage(
-                        channelId = chat.id,
-                        text = message
-                    ))
-                } catch (e: Exception) {
-                    println("Error sending message: ${e.message}")
-                }
-            }
-        }
-    }
-
-    fun deleteChat(chatId: Long) {
-        viewModelScope.launch {
-            try {
-
-                // 2. Usuń na serwerze
-                signalRConnector.deleteChannel(chatId)
-
-                // 3. Odśwież dane
-                loadChats()
-                _selectedChat.value = null
-
-            } catch (e: Exception) {
-                println("Error sending message: ${e.message}")
-            }
-        }
-    }
-
+    fun deleteChat(chatId: Long) = chatsListViewModel.deleteChat(chatId)
 
     // Obsługa dialogów
-    fun onNewChatClick() { _showNewChatDialog.value = true }
-    fun onNewGroupClick() { _showNewGroupDialog.value = true }
-    fun dismissNewChatDialog() { _showNewChatDialog.value = false }
-    fun dismissNewGroupDialog() { _showNewGroupDialog.value = false }
+    fun onNewChatClick() = chatsListViewModel.onNewChatClick()
+    fun onNewGroupClick() = chatsListViewModel.onNewGroupClick()
+    fun dismissNewChatDialog() = chatsListViewModel.dismissNewChatDialog()
+    fun dismissNewGroupDialog() = chatsListViewModel.dismissNewGroupDialog()
 }
+
