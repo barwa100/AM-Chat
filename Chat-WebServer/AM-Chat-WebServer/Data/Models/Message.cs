@@ -22,7 +22,7 @@ public class Message : Identifiable
             SenderId = SenderId,
             ChannelId = ChannelId,
             Data = Data,
-            Type = Type,
+            MessageType = Type,
             Created = Created.ToUnixTimeMilliseconds(),
             Updated = Updated.HasValue ? Updated.Value.ToUnixTimeMilliseconds() : null
         };
@@ -31,8 +31,9 @@ public class Message : Identifiable
 
 public enum MessageType
 {
-    Text,
-    Image,
-    Video,
-    Audio
+    Text = 1,
+    Image = 2,
+    Video = 3,
+    Audio = 4
 }
+

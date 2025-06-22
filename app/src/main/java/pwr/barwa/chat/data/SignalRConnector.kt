@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageDto
+import pwr.barwa.chat.data.dto.MessageType
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendMediaMessage
@@ -19,7 +20,7 @@ import pwr.barwa.chat.data.requests.SendTextMessage
 import pwr.barwa.chat.services.AuthService
 import kotlin.jvm.java
 
-class SignalRConnector(val token: String) {
+class SignalRConnector(public val token: String) {
 
     private val hubConnection: HubConnection by lazy {
         HubConnectionBuilder
@@ -202,3 +203,4 @@ class SignalRConnector(val token: String) {
 
     }
 }
+

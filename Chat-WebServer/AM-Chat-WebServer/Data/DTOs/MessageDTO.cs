@@ -8,7 +8,7 @@ public class MessageDTO
     public long SenderId { get; set; }
     public long ChannelId { get; set; }
     public string Data { get; set; } = string.Empty;
-    public MessageType Type { get; set; }
+    public MessageType MessageType { get; set; }
     public long Created { get; set; }
     public long? Updated { get; set; } = null;
 }
