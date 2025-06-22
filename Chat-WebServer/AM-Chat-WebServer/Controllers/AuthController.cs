@@ -63,21 +63,25 @@ public class AuthController(ChatDbContext dbContext) : ControllerBase
         await dbContext.SaveChangesAsync();
         return TypedResults.Ok();
     }
+
     [HttpGet("me")]
-    public async Task<Results<Ok<UserDTO>, EmptyHttpResult, ProblemHttpResult>> GetCurrentUser()
+    public async Task<Results<Ok<UserDTO>, NotFound>> GetCurrentUser()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null)
         {
-            return TypedResults.Problem("Nie jesteś zalogowany.", statusCode: StatusCodes.Status401Unauthorized);
+            return TypedResults.NotFound();
         }
-        var user = dbContext.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+
+        var user = await dbContext.Users.FindAsync(long.Parse(userId));
         if (user == null)
         {
-            return TypedResults.Problem("Nie znaleziono użytkownika.", statusCode: StatusCodes.Status404NotFound);
+            return TypedResults.NotFound();
         }
+
         return TypedResults.Ok(user.ToDto());
     }
+
 }
 
 public record AccountRequest(string Username, string Password);

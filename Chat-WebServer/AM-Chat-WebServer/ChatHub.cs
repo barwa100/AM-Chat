@@ -94,14 +94,14 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         await Clients.Group(channel.Id.ToString()).ReceiveMessage(message.ToDto());
     }
 
-    public async Task SentMediaMessage(SendMediaMessage msg)
+    public async Task SendMediaMessage(SendMediaMessage msg)
     {
         var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
         var user = await dbContext.Users.FindAsync(id);
         if (user == null)
         {
             throw new InvalidOperationException("User not found");
-        }
+        }   
         
         var channel = await dbContext.Channels
             .Include(c => c.Members)
@@ -275,6 +275,7 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
 
         var query = dbContext.Messages
             .Where(m => m.ChannelId == channelId)
+            .ToList()
             .OrderByDescending(m => m.Created)
             .AsQueryable();
 
@@ -283,7 +284,7 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
             query = query.Where(m => m.Id < beforeMessageId.Value);
         }
 
-        var messages = await query.Take(limit).ToListAsync();
+        var messages = query.Take(limit).ToList();
         
         await Clients.Caller.GetChannelMessages(messages.Select(x=> x.ToDto()).ToList());
         return messages;
@@ -346,23 +347,30 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
     
     public async Task DeleteChannel(long channelId)
     {
-        var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var userId = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+
         var channel = await dbContext.Channels
             .Include(c => c.Members)
             .FirstOrDefaultAsync(c => c.Id == channelId);
+
         if (channel == null)
         {
             throw new InvalidOperationException("Channel not found");
         }
         
-        if (!channel.Members.Any(u => u.Id == id))
+        if (!channel.Members.Any(u => u.Id == userId))
         {
             throw new InvalidOperationException("You are not a member of this channel");
         }
+        var messages = await dbContext.Messages
+            .Where(m => m.ChannelId == channelId)
+            .ToListAsync();
 
+        dbContext.Messages.RemoveRange(messages);
         dbContext.Channels.Remove(channel);
         await dbContext.SaveChangesAsync();
         
-        await Clients.Group(channel.Id.ToString()).ChannelDeleted(channel.Id);
+        await Clients.Group(channelId.ToString()).ChannelDeleted(channelId);
     }
 }
+

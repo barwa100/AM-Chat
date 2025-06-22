@@ -123,4 +123,7 @@ class ChatDetailsViewModel(private val signalRConnector: SignalRConnector) : Vie
             }
         }
     }
+
+    // Funkcja zwracająca aktualnego zalogowanego użytkownika
+    fun getCurrentUser() = signalRConnector.getCurrentUser()
 }

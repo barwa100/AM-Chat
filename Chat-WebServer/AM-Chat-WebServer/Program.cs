@@ -52,7 +52,7 @@ public class Program
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
+        if (true)
         {
             app.MapOpenApi();
             app.MapScalarApiReference();
@@ -70,7 +70,7 @@ public class Program
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
-        app.MapGet("/send/{message}", (HttpContext context, IHubContext<ChatHub, IChatClient> chatHub, string message) =>
+        app.MapGet("/send/{channelId}/{message}", (HttpContext context, IHubContext<ChatHub, IChatClient> chatHub, long channelId, string message) =>
         {
             //chatHub.Clients.All.ReceiveMessage(message);
         });
