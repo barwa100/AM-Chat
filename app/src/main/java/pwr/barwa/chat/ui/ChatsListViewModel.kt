@@ -13,25 +13,20 @@ import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 
-/**
- * ViewModel odpowiedzialny za zarządzanie listą czatów
- */
+
 class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
     private val _chats = MutableStateFlow<List<ChannelDto>>(emptyList())
     val chats: StateFlow<List<ChannelDto>> = _chats
 
-    // Stan dla nowo dodanych czatów (do animacji)
     private val _newChatIds = MutableStateFlow<Set<Long>>(emptySet())
     val newChatIds: StateFlow<Set<Long>> = _newChatIds
 
-    // Stany dla dialogów
     private val _showNewChatDialog = MutableStateFlow(false)
     val showNewChatDialog: StateFlow<Boolean> = _showNewChatDialog
 
     private val _showNewGroupDialog = MutableStateFlow(false)
     val showNewGroupDialog: StateFlow<Boolean> = _showNewGroupDialog
 
-    // Upload states
     private val _isUploading = MutableStateFlow(false)
     val isUploading: StateFlow<Boolean> = _isUploading
 
@@ -41,17 +36,13 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     init {
         loadChats()
         signalRConnector.onChannelListReceived.addListener("ChatsListView", { channels ->
-            // Sortuj kanały według daty ostatniej wiadomości (lub ID kanału, jeśli brak wiadomości)
             _chats.value = sortChannels(channels)
         })
 
-        // Dodanie listenera na nowe kanały
         signalRConnector.onChannelCreated.addListener("ChatsListView", { channel ->
             Log.d("ChatsListViewModel", "Nowy czat utworzony: ${channel.name}, ID: ${channel.id}")
-            // Oznacz nowy kanał do animacji
             _newChatIds.value = _newChatIds.value + channel.id
 
-            // Po 2 sekundach usuń oznaczenie (animacja się zakończy)
             viewModelScope.launch {
                 delay(2000)
                 _newChatIds.value = _newChatIds.value - channel.id
@@ -61,18 +52,13 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
 
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
-                // Sortuj kanały według daty ostatniej wiadomości (lub ID kanału, jeśli brak wiadomości)
                 _chats.value = sortChannels(channels)
             }
         }
     }
 
-    // Funkcja pomocnicza do sortowania kanałów
     private fun sortChannels(channels: List<ChannelDto>): List<ChannelDto> {
         return channels.sortedByDescending { channel ->
-            // Jeśli jest ostatnia wiadomość, użyj jej daty utworzenia
-            // Jeśli kanał jest w zbiorze nowych kanałów, nadaj mu najwyższy priorytet (aktualna data)
-            // W przeciwnym razie użyj daty utworzenia kanału
             when {
                 channel.lastMessage != null -> channel.lastMessage.created
                 _newChatIds.value.contains(channel.id) -> System.currentTimeMillis()
@@ -86,7 +72,6 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
         signalRConnector.onChannelCreated.removeListener("ChatsListView")
     }
 
-    // Metoda do symulowania animacji dla istniejącego czatu (do testów)
     fun markChatAsNew(chatId: Long) {
         _newChatIds.value = _newChatIds.value + chatId
         Log.d("ChatsListViewModel", "Ręcznie oznaczono czat jako nowy: $chatId")
@@ -106,7 +91,6 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") {
         viewModelScope.launch {
             try {
-                // Upload the image if one was selected
                 _isUploading.value = true
                 _uploadError.value = null
                 val imageString: String? = avatarUri?.toString()
