@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -100,7 +102,10 @@ import coil.compose.rememberAsyncImagePainter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +121,7 @@ fun ChatsScreen(
     val showNewChatDialog by viewModel.showNewChatDialog.collectAsState()
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
     val chats by viewModel.chats.collectAsState()
+    val newChatIds by viewModel.newChatIds.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     var chatName by remember { mutableStateOf("") }
     var groupName by remember { mutableStateOf("") }
@@ -125,6 +131,9 @@ fun ChatsScreen(
     var showSearchBar by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
+
+    // Stan przewijania listy czatów
+    val listState = rememberLazyListState()
 
     // Stan przewijania w topAppBar
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -139,6 +148,18 @@ fun ChatsScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.removeListeners()
+        }
+    }
+
+    // Automatyczne przewijanie do nowego chatu
+    LaunchedEffect(newChatIds) {
+        if (newChatIds.isNotEmpty() && chats.isNotEmpty()) {
+            // Znajdź indeks nowego chatu
+            val newChatIndex = chats.indexOfFirst { chat -> newChatIds.contains(chat.id) }
+            if (newChatIndex >= 0) {
+                // Przewiń do pozycji nowego chatu
+                listState.animateScrollToItem(newChatIndex)
+            }
         }
     }
 
@@ -220,16 +241,19 @@ fun ChatsScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         horizontal = 16.dp,
                         vertical = 8.dp
-                    )
+                    ),
+                    state = listState // Ustawienie stanu listy
                 ) {
                     items(
                         items = chats,
                         key = { chat -> chat.id }
                     ) { chat ->
+                        val isNewChat = viewModel.newChatIds.collectAsState().value.contains(chat.id)
                         ChatItemCard(
                             chat = chat,
                             onClick = { onChatClick(chat.id) },
-                            onDeleteClick = { viewModel.deleteChat(chat.id) }
+                            onDeleteClick = { viewModel.deleteChat(chat.id) },
+                            isNewItem = isNewChat
                         )
                     }
                     // Dodaj trochę miejsca na dole dla FAB
@@ -528,7 +552,8 @@ fun ChatAvatar(chat: ChannelDto, modifier: Modifier = Modifier) {
 fun ChatItemCard(
     chat: ChannelDto,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    isNewItem: Boolean = false
 ) {
     val dismissState = rememberDismissState(
         confirmStateChange = {
@@ -539,9 +564,35 @@ fun ChatItemCard(
         }
     )
 
+    // Animacja dla nowych elementów
+    val isVisible = remember { Animatable(if (isNewItem) 0f else 1f) }
+
+    // Wykonaj animację po pierwszym złożeniu
+    LaunchedEffect(chat.id, isNewItem) {
+        if (isNewItem) {
+            isVisible.snapTo(0f)
+            isVisible.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+    }
+
     Box(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 2.dp)
+        .graphicsLayer {
+            // Zastosuj animację tylko dla nowych elementów
+            if (isNewItem) {
+                translationX = (1f - isVisible.value) * (-500f)  // Przesuń z lewej strony
+                //scaleX = 0.8f + (isVisible.value * 0.2f)     // Skalowanie od 0.8 do 1
+                //scaleY = 0.8f + (isVisible.value * 0.2f)
+                alpha = isVisible.value                       // Przezroczystość
+            }
+        }
     ) {
         SwipeToDismiss(
             state = dismissState,
@@ -602,9 +653,7 @@ fun ChatItemCard(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         modifier = Modifier

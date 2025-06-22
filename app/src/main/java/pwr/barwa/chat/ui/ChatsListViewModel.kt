@@ -2,8 +2,10 @@ package pwr.barwa.chat.ui
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,6 +19,10 @@ import pwr.barwa.chat.data.requests.CreateChannelRequest
 class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
     private val _chats = MutableStateFlow<List<ChannelDto>>(emptyList())
     val chats: StateFlow<List<ChannelDto>> = _chats
+
+    // Stan dla nowo dodanych czatów (do animacji)
+    private val _newChatIds = MutableStateFlow<Set<Long>>(emptySet())
+    val newChatIds: StateFlow<Set<Long>> = _newChatIds
 
     // Stany dla dialogów
     private val _showNewChatDialog = MutableStateFlow(false)
@@ -35,18 +41,57 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     init {
         loadChats()
         signalRConnector.onChannelListReceived.addListener("ChatsListView", { channels ->
-            _chats.value = channels
+            // Sortuj kanały według daty ostatniej wiadomości (lub ID kanału, jeśli brak wiadomości)
+            _chats.value = sortChannels(channels)
+        })
+
+        // Dodanie listenera na nowe kanały
+        signalRConnector.onChannelCreated.addListener("ChatsListView", { channel ->
+            Log.d("ChatsListViewModel", "Nowy czat utworzony: ${channel.name}, ID: ${channel.id}")
+            // Oznacz nowy kanał do animacji
+            _newChatIds.value = _newChatIds.value + channel.id
+
+            // Dodaj na początek listy czatów i zachowaj sortowanie
+            _chats.value = sortChannels(_chats.value + channel)
+
+            // Po 2 sekundach usuń oznaczenie (animacja się zakończy)
+            viewModelScope.launch {
+                delay(2000)
+                _newChatIds.value = _newChatIds.value - channel.id
+                Log.d("ChatsListViewModel", "Usunięto ID z animacji: ${channel.id}")
+            }
         })
 
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
-                _chats.value = channels
+                // Sortuj kanały według daty ostatniej wiadomości (lub ID kanału, jeśli brak wiadomości)
+                _chats.value = sortChannels(channels)
             }
+        }
+    }
+
+    // Funkcja pomocnicza do sortowania kanałów
+    private fun sortChannels(channels: List<ChannelDto>): List<ChannelDto> {
+        return channels.sortedByDescending { channel ->
+            // Jeśli jest ostatnia wiadomość, użyj jej daty utworzenia, w przeciwnym razie ID kanału
+            channel.lastMessage?.created ?: channel.id
         }
     }
 
     fun removeListeners() {
         signalRConnector.onChannelListReceived.removeListener("ChatsListView")
+        signalRConnector.onChannelCreated.removeListener("ChatsListView")
+    }
+
+    // Metoda do symulowania animacji dla istniejącego czatu (do testów)
+    fun markChatAsNew(chatId: Long) {
+        _newChatIds.value = _newChatIds.value + chatId
+        Log.d("ChatsListViewModel", "Ręcznie oznaczono czat jako nowy: $chatId")
+
+        viewModelScope.launch {
+            delay(2000)
+            _newChatIds.value = _newChatIds.value - chatId
+        }
     }
 
     fun loadChats() {
