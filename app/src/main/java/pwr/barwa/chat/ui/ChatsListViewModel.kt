@@ -55,7 +55,7 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
         }
     }
 
-    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") {
+    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, userId: Long) {
         viewModelScope.launch {
             try {
                 // Upload the image if one was selected
@@ -69,6 +69,7 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
                         Image = imageString // Add image if needed
                     )
                 )
+                loadChats()
             } catch (e: Exception) {
                 _uploadError.value = "Failed to create chat: ${e.message}"
             } finally {

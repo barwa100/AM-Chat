@@ -44,12 +44,6 @@ class ChatViewModel(private val signalRConnector: SignalRConnector) : ViewModel(
 
     fun loadChats() = chatsListViewModel.loadChats()
 
-    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, initialMessage: String = "") =
-        chatsListViewModel.startNewChat(chatName, avatarUri, context, initialMessage)
-
-    fun createNewGroup(groupName: String, members: List<Long>, avatarUri: Uri?, context: Context) =
-        chatsListViewModel.createNewGroup(groupName, members, avatarUri, context)
-
     fun loadChatById(chatId: Long) = chatDetailsViewModel.loadChatById(chatId)
 
     fun sendMessage(message: String) = chatDetailsViewModel.sendMessage(message)

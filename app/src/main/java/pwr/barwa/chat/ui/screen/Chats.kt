@@ -22,26 +22,20 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,17 +49,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatsListViewModel
+import pwr.barwa.chat.ui.ContactsViewModel
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.DisposableEffect
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageType
@@ -80,23 +72,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.net.Uri
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Badge
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import pwr.barwa.chat.data.dto.UserDto
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -111,7 +98,8 @@ fun ChatsScreen(
     onCreateGroupClick: () -> Unit,
     onDismissNewChatDialog: () -> Unit,
     onDismissNewGroupDialog: () -> Unit,
-    viewModel: ChatsListViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: ChatsListViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    contactViewModel: ContactsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val showNewChatDialog by viewModel.showNewChatDialog.collectAsState()
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
@@ -126,13 +114,14 @@ fun ChatsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    var showContactSelection by remember { mutableStateOf(false) }
+    var showSingleContactSelection by remember { mutableStateOf(false) }
+    val contacts by contactViewModel.contacts.collectAsState()
+    var selectedContacts by remember { mutableStateOf(emptySet<Long>()) }
+    var selectedContact by remember { mutableStateOf<Long?>(null) }
+
     // Stan przewijania w topAppBar
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    // Add this function to handle image selection
-    fun handleImageSelection(uri: Uri?) {
-        selectedAvatarUri = uri
-    }
 
     viewModel.loadChats()
 
@@ -329,157 +318,210 @@ fun ChatsScreen(
 
     // Dialog: New Chat
     if (showNewChatDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissNewChatDialog,
-            title = { Text("Rozpocznij nowy czat") },
-            text = {
-                Column {
-                    //Avatar
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(onClick = { showImagePicker = true })
-                            .align(Alignment.CenterHorizontally)
-                    ) {
-                        if (selectedAvatarUri != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(selectedAvatarUri),
-                                contentDescription = "Wybrany awatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+        if (showSingleContactSelection) {
+            SingleContactSelectionDialog(
+                contacts = contacts,
+                selectedContact = selectedContact,
+                onContactSelected = { contactId ->
+                    selectedContact = contactId
+                },
+                onConfirm = {
+                    selectedContact?.let { contactId ->
+                        contacts.find { it.id == contactId }?.let { contact ->
+                            viewModel.startNewChat(
+                                chatName = contact.userName,
+                                avatarUri = selectedAvatarUri,
+                                context = context,
+                                userId = contactId
                             )
-                        } else {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = "Dodaj awatar",
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .align(Alignment.Center),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            onDismissNewChatDialog()
+                            selectedAvatarUri = null
+                            chatName = ""
+                            selectedContact = null
+                            showSingleContactSelection = false
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    //Chat name
-                    Text("Nazwa czatu:")
-                    OutlinedTextField(
-                        value = chatName,
-                        onValueChange = { chatName = it },
-                        modifier = Modifier.fillMaxWidth(),
+                },
+                onDismiss = {
+                    showSingleContactSelection = false
+                    selectedContact = null
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = onDismissNewChatDialog,
+                title = { Text("Rozpocznij nowy czat") },
+                text = {
+                    Column {
+                        // Przycisk wyboru kontaktu
+                        FilledTonalButton(
+                            onClick = { showSingleContactSelection = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Wybierz kontakt")
+                        }
+
+                        // Pokazujemy wybrany kontakt
+                        selectedContact?.let { contactId ->
+                            contacts.find { it.id == contactId }?.let { contact ->
+                                SelectedContactItem(
+                                    contact = contact,
+                                    onRemove = { selectedContact = null }
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (selectedContact == null) {
+                                showSingleContactSelection = true
+                            } else {
+                                selectedContact?.let { contactId ->
+                                    viewModel.startNewChat(
+                                        chatName = chatName,
+                                        avatarUri = selectedAvatarUri,
+                                        context = context,
+                                        userId = contactId
+                                    )
+                                }
+                                onDismissNewChatDialog()
+                                selectedAvatarUri = null
+                                chatName = ""
+                                selectedContact = null
+                            }
+                        },
+                        enabled = chatName.isNotBlank() && selectedContact != null,
                         shape = RoundedCornerShape(12.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.startNewChat(chatName, selectedAvatarUri, context)
+                    ) {
+                        Text("Rozpocznij")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
                         onDismissNewChatDialog()
-                        selectedAvatarUri = null // Reset for next use
+                        selectedAvatarUri = null
                         chatName = ""
-                    },
-                    enabled = chatName.isNotBlank(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Rozpocznij")
+                        selectedContact = null
+                    }) {
+                        Text("Anuluj")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    onDismissNewChatDialog()
-                    selectedAvatarUri = null // Reset for next use
-                    chatName = ""
-                }) {
-                    Text("Anuluj")
-                }
-            }
-        )
+            )
+        }
     }
 
     // Dialog: New Group
     if (showNewGroupDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissNewGroupDialog,
-            title = { Text("Utwórz nową grupę") },
-            text = {
-                Column {
-                    // Avatar preview and selection
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(onClick = { showImagePicker = true })
-                            .align(Alignment.CenterHorizontally)
-                    ) {
-                        if (selectedAvatarUri != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(selectedAvatarUri),
-                                contentDescription = "Wybrany awatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Person, // Zamiana Icons.Default.Group na Icons.Default.Person
-                                contentDescription = "Dodaj awatar grupy",
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .align(Alignment.Center),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+        if (showContactSelection) {
+            ContactSelectionDialog(
+                contacts = contacts,
+                selectedContacts = selectedContacts,
+                onContactSelected = { contactId ->
+                    selectedContacts = if (selectedContacts.contains(contactId)) {
+                        selectedContacts - contactId
+                    } else {
+                        selectedContacts + contactId
+                    }
+                },
+                onConfirm = {
+                    if (selectedContacts.isNotEmpty()) {
+                        viewModel.createNewGroup(
+                            groupName = groupName,
+                            avatarUri = selectedAvatarUri,
+                            context = context,
+                            members = selectedContacts.toList()
+                        )
+                        onDismissNewChatDialog()
+                        selectedAvatarUri = null
+                        groupName = ""
+                        selectedContacts = emptySet()
+                        showContactSelection = false
+                    }
+                },
+                onDismiss = {
+                    showContactSelection = false
+                    selectedContacts = emptySet()
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = onDismissNewGroupDialog,
+                title = { Text("Utwórz nową grupę") },
+                text = {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable(onClick = { showImagePicker = true })
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            if (selectedAvatarUri != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(selectedAvatarUri),
+                                    contentDescription = "Wybrany awatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Dodaj awatar grupy",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .align(Alignment.Center),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = groupName,
+                            onValueChange = { groupName = it },
+                            label = { Text("Nazwa grupy") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = { showContactSelection = true },
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Wybierz członków (${selectedContacts.size})")
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = groupName,
-                        onValueChange = { groupName = it },
-                        label = { Text("Nazwa grupy") },
-                        modifier = Modifier.fillMaxWidth(),
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showContactSelection = true // przejdź do wyboru kontaktów
+                        },
+                        enabled = groupName.isNotBlank(),
                         shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = members,
-                        onValueChange = { members = it },
-                        label = { Text("Członkowie (ID oddzielone przecinkami)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val memberList = members.split(",").map { it.trim().toLong() }
-                        viewModel.createNewGroup(groupName, memberList, selectedAvatarUri, context)
+                    ) {
+                        Text("Dalej")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
                         onDismissNewGroupDialog()
-                        selectedAvatarUri = null // Reset for next use
+                        selectedAvatarUri = null
                         groupName = ""
-                        members = ""
-                    },
-                    enabled = groupName.isNotBlank() && members.isNotBlank(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Utwórz")
+                        selectedContacts = emptySet()
+                    }) {
+                        Text("Anuluj")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    onDismissNewGroupDialog()
-                    selectedAvatarUri = null // Reset for next use
-                    groupName = ""
-                    members = ""
-                }) {
-                    Text("Anuluj")
-                }
-            }
-        )
+            )
+        }
     }
 
     // Add the image picker dialog
@@ -539,9 +581,10 @@ fun ChatItemCard(
         }
     )
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 2.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
     ) {
         SwipeToDismiss(
             state = dismissState,
@@ -639,7 +682,6 @@ fun ChatItemCard(
                                         MessageType.IMAGE -> "🖼️ Obraz"
                                         MessageType.VIDEO -> "🎥 Wideo"
                                         MessageType.AUDIO -> "🎵 Audio"
-                                        else -> "Wiadomość"
                                     }
                                 } ?: "Brak wiadomości",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -727,4 +769,296 @@ fun ImagePickerDialog(
             }
         }
     )
+}
+
+@Composable
+fun ContactSelectionDialog(
+    contacts: List<UserDto>,
+    selectedContacts: Set<Long>,
+    onContactSelected: (Long) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Wybierz kontakty") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.height(300.dp)
+            ) {
+                items(contacts) { contact ->
+                    ContactSelectionItem(
+                        contact = contact,
+                        isSelected = selectedContacts.contains(contact.id),
+                        onSelectedChange = { onContactSelected(contact.id) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = selectedContacts.isNotEmpty(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Potwierdź")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj")
+            }
+        }
+    )
+}
+
+@Composable
+fun ContactSelectionItem(
+    contact: UserDto,
+    isSelected: Boolean,
+    onSelectedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelectedChange(!isSelected) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Contact avatar
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!contact.avatarUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = contact.avatarUrl,
+                    contentDescription = "Contact avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Contact avatar",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Contact name
+        Text(
+            text = contact.userName,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        // Checkbox
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .border(
+                    width = 2.dp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .background(
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else Color.Transparent,
+                    shape = RoundedCornerShape(4.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SingleContactSelectionDialog(
+    contacts: List<UserDto>,
+    selectedContact: Long?,
+    onContactSelected: (Long) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Wybierz kontakt") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.height(300.dp)
+            ) {
+                items(contacts) { contact ->
+                    SingleContactSelectionItem(
+                        contact = contact,
+                        isSelected = selectedContact == contact.id,
+                        onSelected = { onContactSelected(contact.id) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = selectedContact != null,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Potwierdź")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj")
+            }
+        }
+    )
+}
+
+@Composable
+fun SingleContactSelectionItem(
+    contact: UserDto,
+    isSelected: Boolean,
+    onSelected: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelected)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar kontaktu
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!contact.avatarUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = contact.avatarUrl,
+                    contentDescription = "Contact avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Contact avatar",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Nazwa kontaktu
+        Text(
+            text = contact.userName,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        // Radio button
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .border(
+                    width = 2.dp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
+                    shape = CircleShape
+                )
+                .background(
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else Color.Transparent,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectedContactItem(
+    contact: UserDto,
+    onRemove: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar kontaktu
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!contact.avatarUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = contact.avatarUrl,
+                    contentDescription = "Selected contact avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Selected contact avatar",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Nazwa kontaktu
+        Text(
+            text = contact.userName,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        // Przycisk usunięcia
+        IconButton(onClick = onRemove) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Usuń kontakt",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

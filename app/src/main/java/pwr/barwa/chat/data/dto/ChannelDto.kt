@@ -7,5 +7,5 @@ data class ChannelDto(
     val messages: List<Long>,
     val lastMessage: MessageDto?,
     val isGroup: Boolean,
-    val image: String? = null
+    val image: String? = null,
 )
