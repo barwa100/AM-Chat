@@ -1,8 +1,13 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Linq;
+using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using AM_Chat_WebServer.Data;
+using AM_Chat_WebServer.Data.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -58,7 +63,21 @@ public class AuthController(ChatDbContext dbContext) : ControllerBase
         await dbContext.SaveChangesAsync();
         return TypedResults.Ok();
     }
-    
+    [HttpGet("me")]
+    public async Task<Results<Ok<UserDTO>, EmptyHttpResult, ProblemHttpResult>> GetCurrentUser()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null)
+        {
+            return TypedResults.Problem("Nie jesteś zalogowany.", statusCode: StatusCodes.Status401Unauthorized);
+        }
+        var user = dbContext.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+        if (user == null)
+        {
+            return TypedResults.Problem("Nie znaleziono użytkownika.", statusCode: StatusCodes.Status404NotFound);
+        }
+        return TypedResults.Ok(user.ToDto());
+    }
 }
 
 public record AccountRequest(string Username, string Password);

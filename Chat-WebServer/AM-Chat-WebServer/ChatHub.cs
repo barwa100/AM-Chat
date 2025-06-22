@@ -1,6 +1,10 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using AM_Chat_WebServer.Data;
 using AM_Chat_WebServer.Data.Models;
 using AM_Chat_WebServer.Data.Requests;
@@ -324,5 +328,41 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
 
         await Clients.Caller.GetChannel(channel.ToDto());
         return channel;
+    }
+    
+    public async Task<User> GetCurrentUser()
+    {
+        var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var user = await dbContext.Users
+            .Include(u => u.Contacts)
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (user == null)
+        {
+            throw new InvalidOperationException("User not found");
+        }
+        await Clients.Caller.GetCurrentUser(user.ToDto());
+        return user;
+    }
+    
+    public async Task DeleteChannel(long channelId)
+    {
+        var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var channel = await dbContext.Channels
+            .Include(c => c.Members)
+            .FirstOrDefaultAsync(c => c.Id == channelId);
+        if (channel == null)
+        {
+            throw new InvalidOperationException("Channel not found");
+        }
+        
+        if (!channel.Members.Any(u => u.Id == id))
+        {
+            throw new InvalidOperationException("You are not a member of this channel");
+        }
+
+        dbContext.Channels.Remove(channel);
+        await dbContext.SaveChangesAsync();
+        
+        await Clients.Group(channel.Id.ToString()).ChannelDeleted(channel.Id);
     }
 }

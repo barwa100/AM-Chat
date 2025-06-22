@@ -1,4 +1,6 @@
-﻿using AM_Chat_WebServer.Data.DTOs;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using AM_Chat_WebServer.Data.DTOs;
 using AM_Chat_WebServer.Data.Models;
 
 namespace AM_Chat_WebServer;
@@ -14,4 +16,7 @@ public interface IChatClient
     public Task UserJoined(ChannelDTO channel, UserDTO user, UserDTO adder);
     public Task GetContacts(List<UserDTO> contacts);
     public Task NewContact(UserDTO contact);
+    
+    public Task GetCurrentUser(UserDTO user);
+    public Task ChannelDeleted(long channelId);
 }

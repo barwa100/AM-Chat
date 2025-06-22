@@ -101,7 +101,7 @@ class SignalRConnector(val token: String) {
             _contacts.value += user
             onContactAdded.invoke(user)
         }, UserDto::class.java)
-        hubConnection.on("UserAddedToChannel", { channel: ChannelDto, user: UserDto, addedBy: UserDto ->
+        hubConnection.on("UserJoined", { channel: ChannelDto, user: UserDto, addedBy: UserDto ->
             _channels.value = _channels.value.map {
                 if (it.id == channel.id) it.copy(members = it.members + user.id) else it
             }
