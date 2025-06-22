@@ -2,8 +2,10 @@ package pwr.barwa.chat.ui
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -11,21 +13,20 @@ import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 
-/**
- * ViewModel odpowiedzialny za zarządzanie listą czatów
- */
+
 class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
     private val _chats = MutableStateFlow<List<ChannelDto>>(emptyList())
     val chats: StateFlow<List<ChannelDto>> = _chats
 
-    // Stany dla dialogów
+    private val _newChatIds = MutableStateFlow<Set<Long>>(emptySet())
+    val newChatIds: StateFlow<Set<Long>> = _newChatIds
+
     private val _showNewChatDialog = MutableStateFlow(false)
     val showNewChatDialog: StateFlow<Boolean> = _showNewChatDialog
 
     private val _showNewGroupDialog = MutableStateFlow(false)
     val showNewGroupDialog: StateFlow<Boolean> = _showNewGroupDialog
 
-    // Upload states
     private val _isUploading = MutableStateFlow(false)
     val isUploading: StateFlow<Boolean> = _isUploading
 
@@ -35,18 +36,50 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     init {
         loadChats()
         signalRConnector.onChannelListReceived.addListener("ChatsListView", { channels ->
-            _chats.value = channels
+            _chats.value = sortChannels(channels)
+        })
+
+        signalRConnector.onChannelCreated.addListener("ChatsListView", { channel ->
+            Log.d("ChatsListViewModel", "Nowy czat utworzony: ${channel.name}, ID: ${channel.id}")
+            _newChatIds.value = _newChatIds.value + channel.id
+
+            viewModelScope.launch {
+                delay(2000)
+                _newChatIds.value = _newChatIds.value - channel.id
+                Log.d("ChatsListViewModel", "Usunięto ID z animacji: ${channel.id}")
+            }
         })
 
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
-                _chats.value = channels
+                _chats.value = sortChannels(channels)
+            }
+        }
+    }
+
+    private fun sortChannels(channels: List<ChannelDto>): List<ChannelDto> {
+        return channels.sortedByDescending { channel ->
+            when {
+                channel.lastMessage != null -> channel.lastMessage.created
+                _newChatIds.value.contains(channel.id) -> System.currentTimeMillis()
+                else -> channel.created
             }
         }
     }
 
     fun removeListeners() {
         signalRConnector.onChannelListReceived.removeListener("ChatsListView")
+        signalRConnector.onChannelCreated.removeListener("ChatsListView")
+    }
+
+    fun markChatAsNew(chatId: Long) {
+        _newChatIds.value = _newChatIds.value + chatId
+        Log.d("ChatsListViewModel", "Ręcznie oznaczono czat jako nowy: $chatId")
+
+        viewModelScope.launch {
+            delay(2000)
+            _newChatIds.value = _newChatIds.value - chatId
+        }
     }
 
     fun loadChats() {
@@ -58,7 +91,6 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, userId: Long) {
         viewModelScope.launch {
             try {
-                // Upload the image if one was selected
                 _isUploading.value = true
                 _uploadError.value = null
                 val imageString: String? = avatarUri?.toString()

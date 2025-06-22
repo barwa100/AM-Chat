@@ -8,4 +8,5 @@ data class ChannelDto(
     val lastMessage: MessageDto?,
     val isGroup: Boolean,
     val image: String? = null,
+    val created: Long
 )

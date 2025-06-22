@@ -13,9 +13,6 @@ import pwr.barwa.chat.data.requests.SendTextMessage
 import pwr.barwa.chat.data.requests.SendMediaMessage
 import pwr.barwa.chat.data.dto.MessageType
 
-/**
- * ViewModel odpowiedzialny za szczegóły czatu, wiadomości i członków
- */
 class ChatDetailsViewModel(private val signalRConnector: SignalRConnector) : ViewModel() {
 
     private val _selectedChat = MutableStateFlow<ChannelDto?>(null)

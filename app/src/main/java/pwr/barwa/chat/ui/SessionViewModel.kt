@@ -21,6 +21,12 @@ class SessionViewModel(private val sharedPreferences: SharedPreferences) : ViewM
                         sharedPreferences.edit().putString("token", token).apply()
                         SignalRConnector.getInstance(token).startConnection()
 
+                        // Pobierz informacje o użytkowniku i ustaw je w CurrentUserHolder
+                        val userResult = AuthService().getUserByUsername(username ?: "")
+                        userResult.onSuccess { user ->
+                            CurrentUserHolder.setCurrentUser(user)
+                        }
+
                         Result.success(true)
                     } else {
                         Result.failure(Exception("Token is null"))

@@ -57,6 +57,13 @@ class SignalRConnector(public val token: String) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     suspend fun startConnection() {
+        //clear previous data
+        _messages.value = emptyList()
+        _channels.value = emptyList()
+        _contacts.value = emptyList()
+        __users.value = emptyList()
+        _currentUser.value = null
+
         hubConnection.on("ReceiveMessage", { message ->
             _messages.value += message
             onMessageReceived.invoke(message)

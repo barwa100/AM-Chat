@@ -16,26 +16,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ChatsListViewModel
@@ -58,6 +67,8 @@ import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.rememberDismissState
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.DisposableEffect
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageType
@@ -72,6 +83,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.draw.clip
@@ -87,7 +99,10 @@ import pwr.barwa.chat.data.dto.UserDto
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +119,7 @@ fun ChatsScreen(
     val showNewChatDialog by viewModel.showNewChatDialog.collectAsState()
     val showNewGroupDialog by viewModel.showNewGroupDialog.collectAsState()
     val chats by viewModel.chats.collectAsState()
+    val newChatIds by viewModel.newChatIds.collectAsState()
     var expanded by remember { mutableStateOf(false) }
     var chatName by remember { mutableStateOf("") }
     var groupName by remember { mutableStateOf("") }
@@ -120,14 +136,34 @@ fun ChatsScreen(
     var selectedContacts by remember { mutableStateOf(emptySet<Long>()) }
     var selectedContact by remember { mutableStateOf<Long?>(null) }
 
+    // Stan przewijania listy czatów
+    val listState = rememberLazyListState()
+
     // Stan przewijania w topAppBar
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+    // Add this function to handle image selection
+    fun handleImageSelection(uri: Uri?) {
+        selectedAvatarUri = uri
+    }
 
     viewModel.loadChats()
 
     DisposableEffect(Unit) {
         onDispose {
             viewModel.removeListeners()
+        }
+    }
+
+    // Automatyczne przewijanie do nowego chatu
+    LaunchedEffect(newChatIds) {
+        if (newChatIds.isNotEmpty() && chats.isNotEmpty()) {
+            // Znajdź indeks nowego chatu
+            val newChatIndex = chats.indexOfFirst { chat -> newChatIds.contains(chat.id) }
+            if (newChatIndex >= 0) {
+                // Przewiń do pozycji nowego chatu
+                listState.animateScrollToItem(newChatIndex)
+            }
         }
     }
 
@@ -209,16 +245,20 @@ fun ChatsScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         horizontal = 16.dp,
                         vertical = 8.dp
-                    )
+                    ),
+                    state = listState // Ustawienie stanu listy
                 ) {
                     items(
                         items = chats,
-                        key = { chat -> chat.id }
+                        key = { chat -> chat.id } // Używa ID chatu jako klucza
                     ) { chat ->
+                        // Pobierz informację o nowym chacie raz, na zewnątrz renderowania
+                        val isNewChat = newChatIds.contains(chat.id)
                         ChatItemCard(
                             chat = chat,
                             onClick = { onChatClick(chat.id) },
-                            onDeleteClick = { viewModel.deleteChat(chat.id) }
+                            onDeleteClick = { viewModel.deleteChat(chat.id) },
+                            isNewItem = isNewChat
                         )
                     }
                     // Dodaj trochę miejsca na dole dla FAB
@@ -570,7 +610,8 @@ fun ChatAvatar(chat: ChannelDto, modifier: Modifier = Modifier) {
 fun ChatItemCard(
     chat: ChannelDto,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    isNewItem: Boolean = false
 ) {
     val dismissState = rememberDismissState(
         confirmStateChange = {
@@ -584,7 +625,36 @@ fun ChatItemCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(vertical = 2.dp))
+    // Animacja dla nowych elementów
+    val isVisible = remember { Animatable(if (isNewItem) 0f else 1f) }
+
+    // Wykonaj animację po pierwszym złożeniu
+    LaunchedEffect(chat.id, isNewItem) {
+        if (isNewItem) {
+            isVisible.snapTo(0f)
+            isVisible.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+    }
+
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 2.dp)
+        .graphicsLayer {
+            // Zastosuj animację tylko dla nowych elementów
+            if (isNewItem) {
+                translationX = (1f - isVisible.value) * (-500f)  // Przesuń z lewej strony
+                //scaleX = 0.8f + (isVisible.value * 0.2f)     // Skalowanie od 0.8 do 1
+                //scaleY = 0.8f + (isVisible.value * 0.2f)
+                alpha = isVisible.value                       // Przezroczystość
+            }
+        }
     ) {
         SwipeToDismiss(
             state = dismissState,
@@ -645,9 +715,7 @@ fun ChatItemCard(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    )
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         modifier = Modifier

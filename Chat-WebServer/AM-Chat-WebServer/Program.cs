@@ -20,6 +20,7 @@ public class Program
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
+            .MinimumLevel.Verbose()
             .CreateLogger();
 
         new SnowflakeGenerator();

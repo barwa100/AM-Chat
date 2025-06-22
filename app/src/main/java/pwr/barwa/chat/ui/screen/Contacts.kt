@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
@@ -42,6 +41,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +59,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.clickable
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ContactsViewModel
@@ -68,8 +73,10 @@ fun Contacts(
     viewModel: ContactsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var showSimulateDialog by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("") }
     val contacts by viewModel.contacts.collectAsState()
+    val newContactIds by viewModel.newContactIds.collectAsState()
 
     // Stan przewijania w topAppBar
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -95,7 +102,14 @@ fun Contacts(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                actions = {
+//                    TextButton(
+//                        onClick = { showSimulateDialog = true }
+//                    ) {
+//                        Text("Symuluj")
+//                    }
+                }
             )
         },
         floatingActionButton = {
@@ -157,7 +171,12 @@ fun Contacts(
                         count = contacts.size,
                         key = { index -> contacts[index].id },
                         itemContent = { index ->
-                            ContactItem(user = contacts[index])
+                            val contact = contacts[index]
+                            val isNewContact = newContactIds.contains(contact.id)
+                            ContactItem(
+                                user = contact,
+                                isNewContact = isNewContact
+                            )
                         }
                     )
                     // Dodaj trochę miejsca na dole dla FAB
@@ -167,6 +186,7 @@ fun Contacts(
         }
     }
 
+    // Dialog dodawania nowego kontaktu
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -203,14 +223,89 @@ fun Contacts(
             }
         )
     }
+
+    // Dialog symulowania nowego kontaktu
+    if (showSimulateDialog && contacts.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showSimulateDialog = false },
+            title = { Text("Symuluj nowy kontakt") },
+            text = {
+                Column {
+                    Text("Wybierz kontakt do animacji:", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Lista kontaktów do wybrania
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp))
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(count = contacts.size) { index ->
+                                val contact = contacts[index]
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.markContactAsNew(contact.id)
+                                            showSimulateDialog = false
+                                        }
+                                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = contact.userName,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showSimulateDialog = false }) {
+                    Text("Zamknij")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun ContactItem(user: UserDto) {
+fun ContactItem(user: UserDto, isNewContact: Boolean = false) {
+    val isVisible = remember { androidx.compose.animation.core.Animatable(if (isNewContact) 0f else 1f) }
+
+    // Wykonaj animację po pierwszym złożeniu
+    LaunchedEffect(user.id, isNewContact) {
+        if (isNewContact) {
+            isVisible.snapTo(0f)
+            isVisible.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .graphicsLayer {
+                // Zastosuj animację tylko dla nowych elementów
+                if (isNewContact) {
+                    translationX = (1f - isVisible.value) * (-500f)  // Przesuń z lewej strony
+                    alpha = isVisible.value                          // Przezroczystość
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
