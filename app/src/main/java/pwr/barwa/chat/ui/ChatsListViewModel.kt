@@ -51,9 +51,6 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
             // Oznacz nowy kanał do animacji
             _newChatIds.value = _newChatIds.value + channel.id
 
-            // Dodaj na początek listy czatów i zachowaj sortowanie
-            _chats.value = sortChannels(_chats.value + channel)
-
             // Po 2 sekundach usuń oznaczenie (animacja się zakończy)
             viewModelScope.launch {
                 delay(2000)
@@ -73,8 +70,14 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     // Funkcja pomocnicza do sortowania kanałów
     private fun sortChannels(channels: List<ChannelDto>): List<ChannelDto> {
         return channels.sortedByDescending { channel ->
-            // Jeśli jest ostatnia wiadomość, użyj jej daty utworzenia, w przeciwnym razie ID kanału
-            channel.lastMessage?.created ?: channel.id
+            // Jeśli jest ostatnia wiadomość, użyj jej daty utworzenia
+            // Jeśli kanał jest w zbiorze nowych kanałów, nadaj mu najwyższy priorytet (aktualna data)
+            // W przeciwnym razie użyj daty utworzenia kanału
+            when {
+                channel.lastMessage != null -> channel.lastMessage.created
+                _newChatIds.value.contains(channel.id) -> System.currentTimeMillis()
+                else -> channel.created
+            }
         }
     }
 

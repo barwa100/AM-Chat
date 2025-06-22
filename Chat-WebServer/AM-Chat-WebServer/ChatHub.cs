@@ -152,7 +152,8 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         var channel = new Channel
         {
             Name = request.Name,
-            Members = users
+            Members = users,
+            Created = DateTimeOffset.UtcNow
         };
         dbContext.Channels.Add(channel);
         await dbContext.SaveChangesAsync();

@@ -298,14 +298,11 @@ fun ContactItem(user: UserDto, isNewContact: Boolean = false) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            // Zastosuj transformacje animacji
             .graphicsLayer {
-                // Zastosuj tylko gdy jest nowy
+                // Zastosuj animację tylko dla nowych elementów
                 if (isNewContact) {
-                    translationY = (1f - isVisible.value) * 200f  // Przesuń z dołu
-                    scaleX = 0.8f + (isVisible.value * 0.2f)     // Skalowanie od 0.8 do 1
-                    scaleY = 0.8f + (isVisible.value * 0.2f)
-                    alpha = isVisible.value                       // Przezroczystość
+                    translationX = (1f - isVisible.value) * (-500f)  // Przesuń z lewej strony
+                    alpha = isVisible.value                          // Przezroczystość
                 }
             },
         shape = RoundedCornerShape(16.dp),

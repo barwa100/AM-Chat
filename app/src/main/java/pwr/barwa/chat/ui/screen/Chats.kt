@@ -246,9 +246,10 @@ fun ChatsScreen(
                 ) {
                     items(
                         items = chats,
-                        key = { chat -> chat.id }
+                        key = { chat -> chat.id } // Używa ID chatu jako klucza
                     ) { chat ->
-                        val isNewChat = viewModel.newChatIds.collectAsState().value.contains(chat.id)
+                        // Pobierz informację o nowym chacie raz, na zewnątrz renderowania
+                        val isNewChat = newChatIds.contains(chat.id)
                         ChatItemCard(
                             chat = chat,
                             onClick = { onChatClick(chat.id) },

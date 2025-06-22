@@ -7,4 +7,5 @@ public class ChannelDTO
     public List<long> Messages { get; set; } = new List<long>();
     public string Name { get; set; } = string.Empty;
     public MessageDTO? LastMessage { get; set; } = new MessageDTO();
+    public long Created { get; set; }
 }

@@ -8,6 +8,7 @@ public class Channel : Identifiable
     public List<User> Members { get; set; } = new();
     public List<Message> Messages { get; set; } = new();
     public string Name { get; set; }
+    public DateTimeOffset Created { get; set; }
     
     public ChannelDTO ToDto()
     {
@@ -17,7 +18,8 @@ public class Channel : Identifiable
             Members = Members.Select(m => m.Id).ToList(),
             Messages = Messages.Select(m => m.Id).ToList(),
             Name = Name,
-            LastMessage = Messages.OrderByDescending(m => m.Created).FirstOrDefault()?.ToDto()
+            LastMessage = Messages.OrderByDescending(m => m.Created).FirstOrDefault()?.ToDto(),
+            Created = Created.ToUnixTimeMilliseconds()
         };
     }
 }
