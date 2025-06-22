@@ -42,8 +42,6 @@ import androidx.navigation.NavController
 
 import pwr.barwa.chat.Chats
 import pwr.barwa.chat.Contacts
-import pwr.barwa.chat.Debug
-import pwr.barwa.chat.GreetingRoute
 import pwr.barwa.chat.MyProfile
 import pwr.barwa.chat.R
 import pwr.barwa.chat.ui.theme.ChatTheme
@@ -73,7 +71,7 @@ fun AuthenticatedLayout(
             },
             topBar = {
                 TopAppBar(
-                    title = { Text("Chat App") },
+                    title = { Text("Twitter") },
                     actions = {
                         Box {
                             IconButton(onClick = { showMenu = true }) {
@@ -153,19 +151,14 @@ fun BottomNavigationBar(
             route = Chats
         ),
         NavigationItem(
-            title = "MyProfle",
+            title = "Mój Profil",
             icon = Icons.Default.AccountBox,
             route = MyProfile
         ),
         NavigationItem(
-            title = "Contacts",
+            title = "Kontakty",
             icon = Icons.Default.AccountBox,
             route = Contacts
-        ),
-        NavigationItem(
-            title = "Debug",
-            icon = Icons.Default.Person,
-            route = Debug
         )
     )
 

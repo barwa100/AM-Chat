@@ -107,7 +107,6 @@ import androidx.compose.runtime.LaunchedEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatsScreen(
-    onBackClick: () -> Unit,
     onChatClick: (Long) -> Unit,
     onNewChatClick: () -> Unit,
     onCreateGroupClick: () -> Unit,

@@ -39,7 +39,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
-import pwr.barwa.chat.ui.ChatViewModel
 import pwr.barwa.chat.ui.ChatsListViewModel
 import pwr.barwa.chat.ui.CurrentUserHolder
 import pwr.barwa.chat.ui.screen.ChatsScreen
@@ -173,7 +172,6 @@ class MainActivity : ComponentActivity() {
                             val viewModel: ChatsListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
                             ChatsScreen(
-                                onBackClick = {navController.popBackStack()},
                                 onChatClick = {chatId ->
                                     println("Clicked chatId: $chatId")
                                     navController.navigate("chat_details/$chatId")},
@@ -195,18 +193,6 @@ class MainActivity : ComponentActivity() {
                         composable<Contacts>{
                             Contacts()
                         }
-//                        composable<MyProfile>{
-//                            val mockUser = UserDto(
-//                                id = 1L,
-//                                userName = "jan_kowalski",
-//                                avatarUrl = null,
-//                                channels = listOf(101, 102),
-//                                messages = listOf(201, 202, 203),
-//                                contacts = listOf(301, 302)
-//                            )
-//
-//                            MyProfileScreen(mockUser, onChangePasswordClick = {}, onChangeAvatarClick = {})
-//                        }
                         composable<MyProfile> {
                             val ctx = this@MainActivity
                             val session = getUserSession(ctx)
@@ -224,24 +210,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             if (user != null) {
-                                MyProfileScreen(
-                                    onChangePasswordClick = { /* handle password change */ },
-                                    onChangeAvatarClick = { /* handle avatar change */ }
-                                )
+                                MyProfileScreen()
                             } else {
                                 Text("Loading user data...")
                             }
-                        }
-                        composable<Debug> {
-                            Debug(onLogoutClick = {
-                                clearUserSession(ctx)
-                                isAuthenticated.value = false
-                                navController.navigate(Login) {
-                                    popUpTo(Login) {
-                                        inclusive = true
-                                    }
-                                }
-                            })
                         }
                         composable<SplashScreen> {
                             SplashScreen(
@@ -306,8 +278,6 @@ object Register
 data class GreetingRoute(val name: String)
 @Serializable
 object Chats
-@Serializable
-object Debug
 @Serializable
 object Contacts
 @Serializable
