@@ -12,11 +12,8 @@ Główne funkcje:
 
 Użytkownicy docelowi: "Osoby prywatne i zespoły szukające prostego i szybkiego narzędzia do komunikacji mobilnej."
 
-2. Diagram architektury
+2. Architektura aplikacji mobilnej z wykorzystaniem SignalR i .NET
 
-# Architektura aplikacji mobilnej z wykorzystaniem SignalR i .NET
-
-## Diagram przepływu danych
 ```mermaid
 sequenceDiagram
     participant U as Użytkownik
