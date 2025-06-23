@@ -1,15 +1,26 @@
 package pwr.barwa.chat.ui.screen
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +31,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,33 +75,52 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import pwr.barwa.chat.data.SignalRConnector
+import pwr.barwa.chat.R
 import pwr.barwa.chat.data.dto.MessageDto
 import pwr.barwa.chat.data.dto.MessageType
+import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.screen.common.ChatAvatar
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailsScreen(
     chatId: Long,
+    onNavigateToEditChat: (Long) -> Unit = {}, // Nowy parametr do nawigacji
     viewModel: ChatDetailsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val chat by viewModel.selectedChat.collectAsState()
@@ -99,12 +131,10 @@ fun ChatDetailsScreen(
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    // Stan komponentu
     var text by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
-    // Przewijanie do najnowszej wiadomości przy zmianie listy
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             lazyListState.animateScrollToItem(messages.size - 1)
@@ -120,9 +150,14 @@ fun ChatDetailsScreen(
         }
     }
 
-    // Załaduj czat
     LaunchedEffect(chatId) {
         viewModel.loadChatById(chatId)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.removeListeners()
+        }
     }
 
     Scaffold(
@@ -180,7 +215,7 @@ fun ChatDetailsScreen(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Informacje o czacie") },
+                            text = { Text("Edytuj czat") },
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.Info,
@@ -188,18 +223,10 @@ fun ChatDetailsScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             },
-                            onClick = { showMenu = false }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Wycisz powiadomienia") },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            onClick = { showMenu = false }
+                            onClick = {
+                                showMenu = false
+                                onNavigateToEditChat(chatId)
+                            }
                         )
                     }
                 },
@@ -221,7 +248,6 @@ fun ChatDetailsScreen(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Pole do wpisywania wiadomości
                     OutlinedTextField(
                         value = text,
                         onValueChange = { text = it },
@@ -248,7 +274,6 @@ fun ChatDetailsScreen(
                         )
                     )
 
-                    // Przycisk wysyłania
                     IconButton(
                         onClick = {
                             if (text.isNotBlank()) {
@@ -275,7 +300,6 @@ fun ChatDetailsScreen(
                 .padding(padding)
                 .padding(horizontal = 8.dp)
         ) {
-            // Lista wiadomości - sortowanie od najstarszych do najnowszych
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 state = lazyListState,
@@ -306,7 +330,8 @@ fun ChatDetailsScreen(
                             bubbleColor = bubbleColor,
                             textColor = textColor,
                             userName = currentUser?.userName ?: "Użytkownik ${message.senderId}",
-                            isCurrentUser = isCurrentUser
+                            isCurrentUser = isCurrentUser,
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -321,7 +346,8 @@ fun MessageBubble(
     bubbleColor: Color,
     textColor: Color,
     userName: String,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
+    viewModel: ChatDetailsViewModel
 ) {
     val bubbleShape = RoundedCornerShape(
         topStart = 16.dp,
@@ -329,90 +355,415 @@ fun MessageBubble(
         bottomStart = if (isCurrentUser) 16.dp else 4.dp,
         bottomEnd = if (isCurrentUser) 4.dp else 16.dp
     )
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
-    Column(
-        modifier = Modifier
-            .widthIn(max = 280.dp)
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-    ) {
-        // Nazwa użytkownika (tylko dla innych użytkowników)
-        if (!isCurrentUser) {
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp, bottom = 2.dp)
-            )
+    val localMediaUri = viewModel.getMediaUri(message.id)
+
+    val isLocallyStored = localMediaUri != null
+
+    val isNewMessage = viewModel.isNewMessage(message.id)
+
+    val visibleState = remember { MutableTransitionState(!isNewMessage).apply { targetState = true } }
+
+    LaunchedEffect(message.id) {
+        if (isNewMessage) {
+            delay(500)
+            viewModel.markMessageDisplayed(message.id)
         }
+    }
 
-        // Treść wiadomości
-        Card(
-            shape = bubbleShape,
-            colors = CardDefaults.cardColors(
-                containerColor = bubbleColor
-            )
+    AnimatedVisibility(
+        visibleState = visibleState,
+        enter = if (isNewMessage) {
+            if (isCurrentUser) {
+                fadeIn(animationSpec = tween(300)) +
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth / 3 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+            } else {
+                fadeIn(animationSpec = tween(300)) +
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> -fullWidth / 3 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) +
+                scaleIn(
+                    initialScale = 0.8f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+            }
+        } else {
+            fadeIn(animationSpec = tween(0))
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .padding(horizontal = 8.dp, vertical = 2.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                when (message.type) {
-                    MessageType.TEXT -> {
-                        Text(
-                            text = message.data,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor
-                        )
-                    }
-                    MessageType.IMAGE -> {
-                        Column {
+            if (!isCurrentUser) {
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 2.dp)
+                )
+            }
+
+            Card(
+                shape = bubbleShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = bubbleColor
+                )
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    when (message.type) {
+                        MessageType.TEXT -> {
                             Text(
-                                text = "🖼️ Obraz",
+                                text = message.data,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textColor
+                            )
+                        }
+                        MessageType.IMAGE -> {
+                            val imageUri = localMediaUri ?: (AuthService.URL_BASE + "Media/" + message.id + "." + message.data).toUri()
+
+                            Box {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(imageUri)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Obraz",
+                                    contentScale = ContentScale.FillWidth,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            localMediaUri?.let { uri ->
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                        setDataAndType(uri, when (message.type) {
+                                                            MessageType.IMAGE -> "image/*"
+                                                            MessageType.VIDEO -> "video/*"
+                                                            MessageType.AUDIO -> "audio/*"
+                                                            else -> "*/*"
+                                                        })
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    Log.e("MessageBubble", "Błąd podczas otwierania pliku: ${e.message}")
+                                                    Toast.makeText(context, "Nie można otworzyć pliku: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } ?: run {
+                                                val remoteUrl = AuthService.URL_BASE + "Media/" + message.id + "." + message.data
+                                                uriHandler.openUri(remoteUrl)
+                                            }
+                                        }
+                                )
+
+                                if (isLocallyStored) {
+                                    LocalFileIndicator(textColor = textColor)
+                                }
+                            }
+                        }
+                        MessageType.VIDEO -> {
+                            val extension = message.data ?: "mp4" // Fallback do mp4 jeśli brak rozszerzenia
+                            val videoUri = localMediaUri?.toString()
+                                ?: (AuthService.URL_BASE + "Media/" + message.id + "." + extension)
+
+                            Box {
+                                VideoPlayer(url = videoUri)
+
+                                if (isLocallyStored) {
+                                    LocalFileIndicator(textColor = textColor)
+                                }
+                            }
+                        }
+                        MessageType.AUDIO -> {
+                            val extension = message.data ?: "mp3" // Fallback do mp3 jeśli brak rozszerzenia
+                            val audioUri = localMediaUri?.toString()
+                                ?: (AuthService.URL_BASE + "Media/" + message.id + "." + extension)
+
+                            Box {
+                                AudioPlayer(url = audioUri, textColor = textColor)
+
+                                if (isLocallyStored) {
+                                    LocalFileIndicator(textColor = textColor)
+                                }
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = message.data,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = textColor
                             )
                         }
                     }
-                    MessageType.VIDEO -> {
-                        Text(
-                            text = "🎥 Wideo",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor
-                        )
-                    }
-                    MessageType.AUDIO -> {
-                        Text(
-                            text = "🎵 Audio",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor
-                        )
-                    }
-                    else -> {
-                        Text(
-                            text = message.data,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor
-                        )
-                    }
-                }
 
-                // Czas wiadomości
-                Text(
-                    text = formatMessageTime(message.created),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = textColor.copy(alpha = 0.7f),
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(top = 4.dp)
-                )
+                    Text(
+                        text = formatMessageTime(message.created),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 4.dp)
+                    )
+                }
             }
         }
     }
 }
 
-// Helper function to format message timestamp
+
+@Composable
+fun LocalFileIndicator(textColor: Color) {
+    Box(
+        modifier = Modifier
+            .padding(8.dp)
+            .size(32.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                shape = CircleShape
+            )
+            .border(
+                width = 1.dp,
+                color = textColor.copy(alpha = 0.5f),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Check,  // Zmiana na dostępną ikonę
+            contentDescription = "Plik dostępny offline",
+            tint = textColor,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@androidx.annotation.OptIn(UnstableApi::class)
+@Composable
+fun VideoPlayer(url: String) {
+    val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    exoPlayer.pause()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    exoPlayer.release()
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            exoPlayer.release()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(RoundedCornerShape(8.dp))
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = true
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun AudioPlayer(url: String, textColor: Color) {
+    val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    val isPlaying = remember { mutableStateOf(false) }
+    val progress = remember { mutableStateOf(0f) }
+    val duration = remember { mutableStateOf(0L) }
+    val formattedPosition = remember { mutableStateOf("0:00") }
+    val formattedDuration = remember { mutableStateOf("0:00") }
+    val coroutineScope = rememberCoroutineScope()
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+
+            addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) {
+                        duration.value = this@apply.duration
+                        formattedDuration.value = formatDuration(this@apply.duration)
+                    }
+                }
+
+                override fun onIsPlayingChanged(playing: Boolean) {
+                    isPlaying.value = playing
+
+                    if (playing) {
+                        coroutineScope.launch {
+                            val player = this@apply
+                            while (isPlaying.value) {
+                                try {
+                                    val currentPos = player.currentPosition
+                                    val totalDuration = player.duration.coerceAtLeast(1)
+                                    progress.value = currentPos.toFloat() / totalDuration
+                                    formattedPosition.value = formatDuration(currentPos)
+                                    delay(500) // Aktualizacja co 500ms
+                                } catch (e: Exception) {
+                                    Log.e("AudioPlayer", "Błąd dostępu do exoPlayer: ${e.message}")
+                                    break
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    exoPlayer.pause()
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    exoPlayer.release()
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            exoPlayer.release()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    if (isPlaying.value) {
+                        exoPlayer.pause()
+                    } else {
+                        exoPlayer.play()
+                    }
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    painter = if (isPlaying.value)
+                        painterResource(id = R.drawable.ic_pause)
+                    else
+                        painterResource(id = R.drawable.ic_play),
+                    contentDescription = if (isPlaying.value) "Pauza" else "Odtwórz",
+                    tint = textColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+            ) {
+                Slider(
+                    value = progress.value,
+                    onValueChange = {
+                        progress.value = it
+                        val newPosition = (exoPlayer.duration * it).toLong()
+                        exoPlayer.seekTo(newPosition)
+                    },
+                    colors = androidx.compose.material3.SliderDefaults.colors(
+                        thumbColor = textColor,
+                        activeTrackColor = textColor,
+                        inactiveTrackColor = textColor.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = formattedPosition.value,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor
+                    )
+
+                    Text(
+                        text = formattedDuration.value,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "$minutes:${seconds.toString().padStart(2, '0')}"
+}
+
 private fun formatMessageTime(timestamp: Long): String {
     return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
-// Funkcja pomocnicza do obsługi wybranych mediów
 private fun handleMediaSelection(uri: Uri, context: Context, viewModel: ChatDetailsViewModel) {
     try {
         val inputStream = context.contentResolver.openInputStream(uri)
@@ -435,7 +786,6 @@ private fun handleMediaSelection(uri: Uri, context: Context, viewModel: ChatDeta
             else -> "bin"
         }
 
-        // Określ typ wiadomości na podstawie MIME type
         val messageType = when {
             mimeType.startsWith("image/") -> MessageType.IMAGE
             mimeType.startsWith("video/") -> MessageType.VIDEO

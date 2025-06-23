@@ -2,9 +2,9 @@
 
 namespace AM_Chat_WebServer.Data.Models;
 
-public class Message : Identifiable
+public class Message
 {
-    public long Id { get; set; }
+    public long Id { get; set; } = SnowflakeGenerator.Instance.Generator.NewSnowflake();
     public virtual User Sender { get; set; }
     public long SenderId { get; set; }
     public virtual Channel Channel { get; set; }

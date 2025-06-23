@@ -103,6 +103,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.snap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,63 +207,73 @@ fun ChatsScreen(
             }
         }
     ) { padding ->
+        // Dodajemy obserwację stanu odświeżania
+        val isRefreshing by viewModel.isRefreshing.collectAsState()
+
         Box(modifier = Modifier
             .fillMaxSize()
             .padding(padding)
         ) {
-            // Lista czatów
-            if (chats.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+            // Opakowujemy zawartość w PullToRefreshBox
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.loadChats() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Lista czatów
+                if (chats.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "Brak czatów",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        FilledTonalButton(onClick = onNewChatClick) {
-                            Text("Rozpocznij nowy czat")
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Brak czatów",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            FilledTonalButton(onClick = onNewChatClick) {
+                                Text("Rozpocznij nowy czat")
+                            }
                         }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 8.dp
-                    ),
-                    state = listState // Ustawienie stanu listy
-                ) {
-                    items(
-                        items = chats,
-                        key = { chat -> chat.id } // Używa ID chatu jako klucza
-                    ) { chat ->
-                        // Pobierz informację o nowym chacie raz, na zewnątrz renderowania
-                        val isNewChat = newChatIds.contains(chat.id)
-                        ChatItemCard(
-                            chat = chat,
-                            onClick = { onChatClick(chat.id) },
-                            onDeleteClick = { viewModel.deleteChat(chat.id) },
-                            isNewItem = isNewChat
-                        )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 16.dp,
+                            vertical = 8.dp
+                        ),
+                        state = listState // Ustawienie stanu listy
+                    ) {
+                        items(
+                            items = chats,
+                            key = { chat -> chat.id } // Używa ID chatu jako klucza
+                        ) { chat ->
+                            // Pobierz informację o nowym chacie raz, na zewnątrz renderowania
+                            val isNewChat = newChatIds.contains(chat.id)
+                            ChatItemCard(
+                                chat = chat,
+                                onClick = { onChatClick(chat.id) },
+                                onDeleteClick = { viewModel.deleteChat(chat.id) },
+                                isNewItem = isNewChat
+                            )
+                        }
+                        // Dodaj trochę miejsca na dole dla FAB
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
                     }
-                    // Dodaj trochę miejsca na dole dla FAB
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
 
@@ -742,7 +753,6 @@ fun ChatItemCard(
 
                             Spacer(modifier = Modifier.height(2.dp))
 
-                            // Last message with better formatting
                             Text(
                                 text = chat.lastMessage?.let {
                                     when (it.type) {

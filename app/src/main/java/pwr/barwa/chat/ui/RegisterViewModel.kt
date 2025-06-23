@@ -10,7 +10,7 @@ import pwr.barwa.chat.data.responses.TokenResponse
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.sha256
 
-class RegisterViewModel(private val userDao: UserDao) : ViewModel() {
+class RegisterViewModel() : ViewModel() {
     private val authService = AuthService()
     suspend fun register(username: String, password: String): Result<TokenResponse> {
         return withContext(Dispatchers.IO) {

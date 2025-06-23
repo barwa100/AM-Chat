@@ -47,7 +47,13 @@ public class Program
         //     .AddEntityFrameworkStores<ChatDbContext>();
         builder.Services.AddAuthentication(BearerTokenDefaults.AuthenticationScheme)
             .AddBearerToken(BearerTokenDefaults.AuthenticationScheme);
-        builder.Services.AddSignalR();
+
+        // Zwiększamy maksymalny rozmiar wiadomości SignalR dla obsługi mediów
+        builder.Services.AddSignalR(options =>
+        {
+            options.MaximumReceiveMessageSize = 50 * 1024 * 1024; // 50MB
+        });
+
         builder.Services.AddScoped<MediaService>();
         builder.Services.AddDbContext<ChatDbContext>(x => x.UseSqlite("Data Source=chat.db"));
         var app = builder.Build();
@@ -104,3 +110,4 @@ public class Program
         app.Run();
     }
 }
+

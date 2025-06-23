@@ -1,6 +1,7 @@
 package pwr.barwa.chat
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pwr.barwa.chat.data.SignalRConnector
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
@@ -43,6 +45,7 @@ import pwr.barwa.chat.ui.ChatsListViewModel
 import pwr.barwa.chat.ui.CurrentUserHolder
 import pwr.barwa.chat.ui.screen.ChatsScreen
 import pwr.barwa.chat.ui.screen.ChatDetailsScreen
+import pwr.barwa.chat.ui.screen.ChatEditScreen
 import pwr.barwa.chat.ui.screen.Contacts
 import pwr.barwa.chat.ui.screen.MyProfileScreen
 import pwr.barwa.chat.ui.screen.SplashScreen
@@ -61,7 +64,7 @@ class MainActivity : ComponentActivity() {
 //
                 MainLayout(isAuthenticated, navController,
                     onLogoutClick = {
-                        clearUserSession(ctx)
+                        clearUserSession(ctx, restartApp = true)
                         isAuthenticated.value = false
                         navController.navigate(Login) {
                             popUpTo(Login) {
@@ -85,7 +88,7 @@ class MainActivity : ComponentActivity() {
                                     isAuthenticated.value = true
                                     saveUserSession(ctx, username, password)
                                     session = getUserSession(ctx)
-                                    navController.navigate(GreetingRoute(username)) {
+                                    navController.navigate(Chats) {
                                         popUpTo(Login) {
                                             inclusive = true
                                         }
@@ -107,7 +110,7 @@ class MainActivity : ComponentActivity() {
                                     isAuthenticated.value = true
                                     saveUserSession(ctx, username, password)
                                     session = getUserSession(ctx)
-                                    navController.navigate(GreetingRoute(username)) {
+                                    navController.navigate(Chats) {
                                         popUpTo(Login) {
                                             inclusive = true
                                         }
@@ -121,51 +124,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
-                        }
-                        composable<GreetingRoute> { backstack ->
-                            val greeting = backstack.toRoute<GreetingRoute>()
-                            Greeting(greeting.name)
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                // Powitanie użytkownika
-                                Greeting(session?.first ?: "Guest")
-
-                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
-
-                                 //Przycisk do przejścia do ekranów chatów
-                                Button(
-                                    onClick = {navController.navigate(Chats)},
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Go to Chats")
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp)) // Przerwa między przyciskami
-
-                                // Przycisk do wylogowania
-                                Button(
-                                    onClick = {
-                                        // Wyczyść sesję użytkownika
-                                        clearUserSession(ctx)
-
-                                        // Przejdź do ekranu logowania
-                                        navController.navigate(Login) {
-                                            popUpTo(GreetingRoute::class.java.name) {
-                                                inclusive = true
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Logout")
-                                }
-                            }
                         }
                         composable<Chats> {
                             session = getUserSession(ctx)
@@ -185,7 +143,27 @@ class MainActivity : ComponentActivity() {
                         composable("chat_details/{chatId}") { backStackEntry ->
                             val chatId = backStackEntry.arguments?.getString("chatId")?.toLongOrNull()
                             if (chatId != null) {
-                                ChatDetailsScreen(chatId = chatId)
+                                ChatDetailsScreen(
+                                    chatId = chatId,
+                                    onNavigateToEditChat = { id ->
+                                        navController.navigate("chat_edit/$id")
+                                    }
+                                )
+                            } else {
+                                Text("Invalid chat")
+                            }
+                        }
+
+                        // Nowa trasa nawigacyjna dla ekranu edycji czatu
+                        composable("chat_edit/{chatId}") { backStackEntry ->
+                            val chatId = backStackEntry.arguments?.getString("chatId")?.toLongOrNull()
+                            if (chatId != null) {
+                                ChatEditScreen(
+                                    chatId = chatId,
+                                    onNavigateBack = {
+                                        navController.popBackStack()
+                                    }
+                                )
                             } else {
                                 Text("Invalid chat")
                             }
@@ -250,11 +228,71 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun clearUserSession(context: Context) {
-        val sharedPreferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            clear()
-            apply()
+    fun clearUserSession(context: Context, restartApp: Boolean = false) {
+        try {
+            val sharedPreferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+            with(sharedPreferences.edit()) {
+                clear()
+                commit()
+            }
+
+            val allPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+            with(allPreferences.edit()) {
+                clear()
+                commit()
+            }
+
+            try {
+                val signalRConnector = SignalRConnector.getInstance()
+                signalRConnector.logout()
+                SignalRConnector.removeInstance()
+            } catch (e: Exception) {
+                println("Błąd podczas zamykania SignalRConnector: ${e.message}")
+            }
+
+            CurrentUserHolder.resetCurrentUser()
+            AuthService.resetToken()
+
+            println("Wylogowanie zakończone pomyślnie - wszystkie zasoby zostały wyczyszczone")
+
+            if (restartApp) {
+                restartApplication(context)
+            }
+        } catch (e: Exception) {
+            println("Błąd podczas wylogowywania: ${e.message}")
+        }
+    }
+
+    /**
+     * Restartuje aplikację, co zapewnia całkowite wyczyszczenie wszystkich zasobów i stanu aplikacji
+     */
+    private fun restartApplication(context: Context) {
+        try {
+            // Upewniamy się, że wszystkie preferencje zostały wyczyszczone
+            val preferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+            if (preferences.contains("username") || preferences.contains("password")) {
+                with(preferences.edit()) {
+                    clear()
+                    commit()
+                }
+            }
+
+            // Tworzymy intent do restartu aplikacji
+            val packageManager = context.packageManager
+            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+            val componentName = intent?.component
+            val mainIntent = Intent.makeRestartActivityTask(componentName)
+
+            // Dodajemy flagę, że to jest restart po wylogowaniu
+            mainIntent.putExtra("RESTARTED_AFTER_LOGOUT", true)
+
+            // Uruchamiamy nową instancję aplikacji
+            context.startActivity(mainIntent)
+
+            // Zamykamy obecny proces
+            Runtime.getRuntime().exit(0)
+        } catch (e: Exception) {
+            println("Błąd podczas restartowania aplikacji: ${e.message}")
         }
     }
 
@@ -275,8 +313,6 @@ object Login
 @Serializable
 object Register
 @Serializable
-data class GreetingRoute(val name: String)
-@Serializable
 object Chats
 @Serializable
 object Contacts
@@ -284,17 +320,4 @@ object Contacts
 object MyProfile
 @Serializable
 object SplashScreen
-@Composable
-fun Greeting(name: String) {
-    Text(
-        text = "Hello $name!"
-    )
-}
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ChatTheme {
-        Greeting("Android")
-    }
-}
 
