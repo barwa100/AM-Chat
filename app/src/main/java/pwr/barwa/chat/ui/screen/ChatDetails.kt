@@ -112,13 +112,13 @@ import pwr.barwa.chat.R
 import pwr.barwa.chat.data.dto.MessageDto
 import pwr.barwa.chat.data.dto.MessageType
 import pwr.barwa.chat.services.AuthService
-import pwr.barwa.chat.ui.screen.common.ChatAvatar
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
+import pwr.barwa.chat.ui.components.ChatAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,7 +221,7 @@ fun ChatDetailsScreen(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Edytuj czat") },
+                            text = { Text("Dodaj do rozmowy") },
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.Info,

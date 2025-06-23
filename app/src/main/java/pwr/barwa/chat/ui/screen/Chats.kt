@@ -104,6 +104,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import pwr.barwa.chat.ui.components.ChatAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -381,12 +382,10 @@ fun ChatsScreen(
                         contacts.find { it.id == contactId }?.let { contact ->
                             viewModel.startNewChat(
                                 chatName = contact.userName,
-                                avatarUri = selectedAvatarUri,
                                 context = context,
                                 userId = contactId
                             )
                             onDismissNewChatDialog()
-                            selectedAvatarUri = null
                             chatName = ""
                             selectedContact = null
                             showSingleContactSelection = false
@@ -432,13 +431,11 @@ fun ChatsScreen(
                                 selectedContact?.let { contactId ->
                                     viewModel.startNewChat(
                                         chatName = chatName,
-                                        avatarUri = selectedAvatarUri,
                                         context = context,
                                         userId = contactId
                                     )
                                 }
                                 onDismissNewChatDialog()
-                                selectedAvatarUri = null
                                 chatName = ""
                                 selectedContact = null
                             }
@@ -480,12 +477,10 @@ fun ChatsScreen(
                     if (selectedContacts.isNotEmpty()) {
                         viewModel.createNewGroup(
                             groupName = groupName,
-                            avatarUri = selectedAvatarUri,
                             context = context,
                             members = selectedContacts.toList()
                         )
                         onDismissNewChatDialog()
-                        selectedAvatarUri = null
                         groupName = ""
                         selectedContacts = emptySet()
                         showContactSelection = false
@@ -502,35 +497,6 @@ fun ChatsScreen(
                 title = { Text("Utwórz nową grupę") },
                 text = {
                     Column {
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable(onClick = { showImagePicker = true })
-                                .align(Alignment.CenterHorizontally)
-                        ) {
-                            if (selectedAvatarUri != null) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(selectedAvatarUri),
-                                    contentDescription = "Wybrany awatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Dodaj awatar grupy",
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .align(Alignment.Center),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         OutlinedTextField(
                             value = groupName,
                             onValueChange = { groupName = it },
@@ -587,34 +553,6 @@ fun ChatsScreen(
     }
 }
 
-@Composable
-fun ChatAvatar(chat: ChannelDto, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!chat.image.isNullOrEmpty()) {
-            AsyncImage(
-                model = chat.image,
-                contentDescription = "Chat avatar",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            // Fallback icon when no image is available
-            val icon = if (chat.members.size > 2) Icons.Default.Person else Icons.Default.Person
-            Icon(
-                imageVector = icon,
-                contentDescription = "Chat avatar",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable

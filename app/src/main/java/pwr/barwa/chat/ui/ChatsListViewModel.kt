@@ -116,17 +116,16 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
         }
     }
 
-    fun startNewChat(chatName: String, avatarUri: Uri?, context: Context, userId: Long) {
+    fun startNewChat(chatName: String, context: Context, userId: Long) {
         viewModelScope.launch {
             try {
                 _isUploading.value = true
                 _uploadError.value = null
-                val imageString: String? = avatarUri?.toString()
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = chatName,
                         UserIds = listOf(userId), // Add members if needed
-                        Image = imageString // Add image if needed
+                        Image = null // Nie używamy awatara
                     )
                 )
                 loadChats()
@@ -138,17 +137,16 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
         }
     }
 
-    fun createNewGroup(groupName: String, members: List<Long>, avatarUri: Uri?, context: Context) {
+    fun createNewGroup(groupName: String, members: List<Long>, context: Context) {
         viewModelScope.launch {
             try {
                 _isUploading.value = true
                 _uploadError.value = null
-                val imageString: String? = avatarUri?.toString()
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = groupName,
                         UserIds = members,
-                        Image = imageString
+                        Image = null // Nie używamy awatara
                     )
                 )
                 loadChats()
