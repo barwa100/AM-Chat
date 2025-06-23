@@ -127,6 +127,7 @@ fun ChatDetailsScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {

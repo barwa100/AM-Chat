@@ -168,6 +168,7 @@ fun ChatsScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -181,7 +182,7 @@ fun ChatsScreen(
                 actions = {
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )

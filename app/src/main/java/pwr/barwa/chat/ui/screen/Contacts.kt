@@ -63,6 +63,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ContactsViewModel
@@ -89,6 +90,7 @@ fun Contacts(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -100,15 +102,10 @@ fun Contacts(
                 },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
-//                    TextButton(
-//                        onClick = { showSimulateDialog = true }
-//                    ) {
-//                        Text("Symuluj")
-//                    }
                 }
             )
         },
