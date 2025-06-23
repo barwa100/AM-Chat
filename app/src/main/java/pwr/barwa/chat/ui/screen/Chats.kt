@@ -104,6 +104,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.components.ChatAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -851,7 +852,7 @@ fun ContactSelectionItem(
         ) {
             if (!contact.avatarUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = contact.avatarUrl,
+                    model = AuthService.URL_BASE + contact.avatarUrl,
                     contentDescription = "Contact avatar",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -968,7 +969,7 @@ fun SingleContactSelectionItem(
         ) {
             if (!contact.avatarUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = contact.avatarUrl,
+                    model = AuthService.URL_BASE + contact.avatarUrl,
                     contentDescription = "Contact avatar",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -1044,7 +1045,7 @@ fun SelectedContactItem(
         ) {
             if (!contact.avatarUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = contact.avatarUrl,
+                    model = AuthService.URL_BASE + contact.avatarUrl,
                     contentDescription = "Selected contact avatar",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -1078,3 +1079,4 @@ fun SelectedContactItem(
         }
     }
 }
+
