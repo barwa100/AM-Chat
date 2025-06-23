@@ -57,9 +57,9 @@ a) Frontend (Klient)
 b) Backend
 
 Serwer: 
-- Autentykacja:
-- Baza danych: 
-- Cache: 
+- Autentykacja: Własna implementacja oparta o bearer tokeny i zapytania Restowe
+- Baza danych: SQLite obsługiwane przez EntityFrameworkCore
+- Komunikacja z frontendem: SignalR (czas rzeczywisty).
 
 4. Wzorce architektoniczne
 
@@ -141,14 +141,14 @@ Dodatkowo:
     
        i. Użytkownik może założyć nowe konto.
        ii. Użytkownik otrzymuje błąd przy nieprawidłowych danych (np. zbyt krótki login).
-       iii. Użytkownik może zalogować się poprawnym e-mailem i hasłem.
+       iii. Użytkownik może zalogować się poprawnym logiinem i hasłem.
        iv. Użytkownik nie może zalogować się błędnymi danymi.
 
    - Lista kontaktów
     
        i. Wyświetla się lista dostępnych kontaktów.
        ii. Użytkownik może wyszukać kontakt po nazwie.
-       iii. Użytkownik może dodać/usunąć kontakt.
+       iii. Użytkownik może dodać kontakt.
 
    - Czat 1:1
     
@@ -156,7 +156,7 @@ Dodatkowo:
        ii. Wiadomości tekstowe są poprawnie wysyłane i odbierane.
        iii. Wiadomości są wyświetlane w kolejności chronologicznej.
       
-       iv. Wiadomości mają status „wysłano”, „odebrano”, „przeczytano”.
+       iv. Wiadomości mają status „wysłano”, „odebrano”.
 
    - Czat grupowy
     
@@ -167,6 +167,6 @@ Dodatkowo:
 
    - Załączniki i multimedia
     
-       i. Można dodać zdjęcie do wiadomości.
-       ii. Można ustawić/zmienić awatar użytkownika lub grupy.
+       i. Można dodać zdjęcie lub inne multimedia do wiadomości.
+       ii. Można ustawić/zmienić awatar użytkownika.
        iii. Pliki są poprawnie ładowane i wyświetlane.

@@ -12,7 +12,7 @@ public class User
     public string Password { get; set; } = string.Empty;
     public List<Channel> Channels { get; set; } = new();
     public List<Message> Messages { get; set; } = new();
-    public string AvatarUrl { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; } = string.Empty;
     
     public List<Contact> Contacts { get; set; } = new List<Contact>();
 
