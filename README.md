@@ -1,4 +1,4 @@
-1. Wstęp (Kontekst biznesowy)
+1. Wstęp
 
 Cel aplikacji: "Umożliwia użytkownikom komunikację w czasie rzeczywistym za pomocą wiadomości tekstowych, zarówno w rozmowach indywidualnych, jak i grupowych".
 
@@ -14,23 +14,32 @@ Użytkownicy docelowi: "Osoby prywatne i zespoły szukające prostego i szybkieg
 
 2. Diagram architektury
    
-![Diagram](diagram.png)
+![Diagram](diagram1.png)
 
-[Użytkownik]
-   │
-   ↓ (interakcja)
-[View (Composable)]
-   │
-   ↓ (delegacja akcji)
-[ViewModel]
-   ├───▶ [Aktualizacja stanu] → Odświeżenie UI
-   └───▶ [SignalRConnector]
-            │
-            ↓ (wywołanie metody Hub)
-         [Serwer .NET]
-            │
-            ↓ (odpowiedź)
-         [SignalRConnector] → [ViewModel] → [View]
+# Architektura aplikacji mobilnej z wykorzystaniem SignalR i .NET
+
+## Diagram przepływu danych
+```mermaid
+sequenceDiagram
+    participant U as Użytkownik
+    participant V as View (Composable)
+    participant VM as ViewModel
+    participant S as SignalRConnector
+    participant H as Serwer .NET (Hub)
+
+    U->>V: Interakcja (np. kliknięcie)
+    V->>VM: Wywołanie akcji
+    alt Nawigacja
+        VM->>V: Aktualizacja stanu
+        V->>U: Nowy ekran
+    else Operacje danych
+        VM->>S: Żądanie (np. fetchMessages())
+        S->>H: Wywołanie metody Hub
+        H-->>S: Odpowiedź
+        S->>VM: Dane (StateFlow)
+        VM->>V: Renderowanie
+    end
+```
 
 3. Technologie i narzędzia
 
@@ -90,7 +99,7 @@ Dlaczego ta struktura?
     iii. UI (Compose + ViewModel)
 - Testowalność – Mockowanie zależności jest prostsze dzięki interfejsom.
 
-7. Przepływ danych (przykład)
+7. Przepływ danych:
    
 Użytkownik tworzy kanał → wysyłane jest żądanie REST API.
 
@@ -100,7 +109,7 @@ Wszyscy klienci otrzymują aktualizację przez WebSocket.
 
 Frontend aktualizuje UI (StateFlow/LiveData).
 
-8. Biblioteki:
+8. Wykorzystane biblioteki:
 
 Interfejs Użytkownika i Kompozycja:
 
@@ -127,24 +136,24 @@ Dodatkowo:
 - androidx.room:room-ktx 
 - androidx.room:room-compiler
   
-9. Testowanie
+9. Testy
 
   Lista testów funkcjonalnych:
   
-    -  Rejestracja i logowanie
+   -  Rejestracja i logowanie
     
        i. Użytkownik może założyć nowe konto.
        ii. Użytkownik otrzymuje błąd przy nieprawidłowych danych (np. zbyt krótki login).
        iii. Użytkownik może zalogować się poprawnym e-mailem i hasłem.
        iv. Użytkownik nie może zalogować się błędnymi danymi.
 
-    - Lista kontaktów
+   - Lista kontaktów
     
        i. Wyświetla się lista dostępnych kontaktów.
        ii. Użytkownik może wyszukać kontakt po nazwie.
        iii. Użytkownik może dodać/usunąć kontakt.
 
-    - Czat 1:1
+   - Czat 1:1
     
        i. Użytkownik może rozpocząć nowy czat z wybranym kontaktem.
        ii. Wiadomości tekstowe są poprawnie wysyłane i odbierane.
@@ -152,14 +161,14 @@ Dodatkowo:
       
        iv. Wiadomości mają status „wysłano”, „odebrano”, „przeczytano”.
 
-    - Czat grupowy
+   - Czat grupowy
     
        i. Użytkownik może utworzyć nową grupę i nadać jej nazwę.
        ii. Użytkownik może dodać uczestników do grupy.
        iii. Członkowie grupy mogą wysyłać i odbierać wiadomości.
        iv. Wiadomości grupowe są widoczne dla wszystkich uczestników.
 
-    - Załączniki i multimedia
+   - Załączniki i multimedia
     
        i. Można dodać zdjęcie do wiadomości.
        ii. Można ustawić/zmienić awatar użytkownika lub grupy.
