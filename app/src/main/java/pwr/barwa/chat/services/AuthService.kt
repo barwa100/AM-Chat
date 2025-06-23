@@ -12,9 +12,13 @@ import pwr.barwa.chat.data.dto.UserDto
 class AuthService {
     companion object {
 
-        const val URL_BASE: String = "http://51.75.129.73:5000/"
-//        const val URL_BASE: String = "http://10.0.2.2:5000/" // For Android emulator, use localhost as base URL
+        //const val URL_BASE: String = "http://51.75.129.73:5000/"
+        const val URL_BASE: String = "http://10.0.2.2:5000/" // For Android emulator, use localhost as base URL
         private var token: String? = null
+
+        fun resetToken() {
+            token = null
+        }
     }
 
     suspend fun login(username: String, password: String): Result<TokenResponse> {
@@ -156,3 +160,4 @@ class AuthService {
         }
     }
 }
+

@@ -4,14 +4,24 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import pwr.barwa.chat.data.model.Chat
+import pwr.barwa.chat.data.model.Message
+import pwr.barwa.chat.data.model.User
+import pwr.barwa.chat.data.dao.ChatDao
+import pwr.barwa.chat.data.dao.MessageDao
+import pwr.barwa.chat.data.dao.UserDao
+import pwr.barwa.chat.data.converters.MediaTypeConverter
 
 @Database(
-    entities = [pwr.barwa.chat.data.model.User::class, pwr.barwa.chat.data.model.Chat::class],
-    version = 6,
+    entities = [Message::class, User::class, Chat::class],
+    version = 8,
     exportSchema = false)
+@TypeConverters(MediaTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun userDao(): pwr.barwa.chat.data.dao.UserDao
-    abstract fun chatDao(): pwr.barwa.chat.data.dao.ChatDao
+    abstract fun userDao(): UserDao
+    abstract fun chatDao(): ChatDao
+    abstract fun messageDao(): MessageDao
 
     companion object {
 

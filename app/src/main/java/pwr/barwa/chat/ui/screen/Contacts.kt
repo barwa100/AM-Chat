@@ -63,6 +63,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ContactsViewModel
@@ -131,56 +132,67 @@ fun Contacts(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
+        // Dodajemy obserwację stanu odświeżania
+        val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+        // Opakowujemy zawartość w PullToRefreshBox
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            if (contacts.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.loadContacts() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (contacts.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            "Brak kontaktów",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 8.dp
-                    )
-                ) {
-                    items(
-                        count = contacts.size,
-                        key = { index -> contacts[index].id },
-                        itemContent = { index ->
-                            val contact = contacts[index]
-                            val isNewContact = newContactIds.contains(contact.id)
-                            ContactItem(
-                                user = contact,
-                                isNewContact = isNewContact
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Brak kontaktów",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    )
-                    // Dodaj trochę miejsca na dole dla FAB
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 16.dp,
+                            vertical = 8.dp
+                        )
+                    ) {
+                        items(
+                            count = contacts.size,
+                            key = { index -> contacts[index].id },
+                            itemContent = { index ->
+                                val contact = contacts[index]
+                                val isNewContact = newContactIds.contains(contact.id)
+                                ContactItem(
+                                    user = contact,
+                                    isNewContact = isNewContact
+                                )
+                            }
+                        )
+                        // Dodaj trochę miejsca na dole dla FAB
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                    }
                 }
             }
         }

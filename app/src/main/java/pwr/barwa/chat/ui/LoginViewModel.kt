@@ -8,7 +8,7 @@ import pwr.barwa.chat.data.dao.UserDao
 import pwr.barwa.chat.data.responses.TokenResponse
 import pwr.barwa.chat.services.AuthService
 
-class LoginViewModel(private val userDao: UserDao) : ViewModel() {
+class LoginViewModel() : ViewModel() {
     private val authService = AuthService()
     suspend fun login(username: String, password: String): Result<TokenResponse> {
         // Wykonaj logowanie tylko raz

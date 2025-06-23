@@ -18,6 +18,10 @@ class ContactsViewModel(private val signalRConnector: SignalRConnector) : ViewMo
     private val _newContactIds = MutableStateFlow<Set<Long>>(emptySet())
     val newContactIds: StateFlow<Set<Long>> = _newContactIds
 
+    // Dodajemy stan odświeżania
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         loadContacts()
         viewModelScope.launch {
@@ -55,9 +59,17 @@ class ContactsViewModel(private val signalRConnector: SignalRConnector) : ViewMo
         }
     }
 
-    private fun loadContacts() {
+    // Aktualizacja metody, aby obsługiwała odświeżanie
+    fun loadContacts() {
         viewModelScope.launch {
-            signalRConnector.getContactList()
+            try {
+                _isRefreshing.value = true
+                signalRConnector.getContactList()
+            } finally {
+                // Dodajemy małe opóźnienie, aby animacja odświeżania była widoczna
+                delay(500)
+                _isRefreshing.value = false
+            }
         }
     }
 

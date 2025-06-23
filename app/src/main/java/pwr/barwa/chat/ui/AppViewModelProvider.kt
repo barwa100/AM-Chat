@@ -10,17 +10,26 @@ import pwr.barwa.chat.ChatApplication
 object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
-            LoginViewModel(chatApplication().container.database.userDao())
+            LoginViewModel()
         }
         initializer {
-            RegisterViewModel(chatApplication().container.database.userDao())
+            RegisterViewModel()
         }
         // Nowe ViewModele
         initializer {
             ChatsListViewModel(chatApplication().container.signalRConnector)
         }
         initializer {
-            ChatDetailsViewModel(chatApplication().container.signalRConnector)
+            ChatDetailsViewModel(
+                signalRConnector = chatApplication().container.signalRConnector,
+                context = chatApplication().applicationContext
+            )
+        }
+        initializer {
+            ChatEditViewModel(
+                signalRConnector = chatApplication().container.signalRConnector,
+                context = chatApplication().applicationContext
+            )
         }
         initializer {
             DebugViewModel(chatApplication().container.signalRConnector)

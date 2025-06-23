@@ -103,4 +103,11 @@ dependencies {
     //Image
     implementation("io.coil-kt:coil:2.6.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Media3 (ExoPlayer) do obsługi wideo i audio
+    val media3_version = "1.2.1"
+    implementation("androidx.media3:media3-exoplayer:$media3_version")
+    implementation("androidx.media3:media3-ui:$media3_version")
+    implementation("androidx.media3:media3-common:$media3_version")
 }
+

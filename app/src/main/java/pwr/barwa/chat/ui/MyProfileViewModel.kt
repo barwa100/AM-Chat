@@ -22,6 +22,10 @@ object CurrentUserHolder {
     }
 
     fun getCurrentUser(): UserDto? = _currentUser.value
+
+    fun resetCurrentUser() {
+        _currentUser.value = null
+    }
 }
 
 class MyProfileViewModel(private val signalRConnector: SignalRConnector)  : ViewModel() {
@@ -52,3 +56,4 @@ class MyProfileViewModel(private val signalRConnector: SignalRConnector)  : View
 
 
 }
+

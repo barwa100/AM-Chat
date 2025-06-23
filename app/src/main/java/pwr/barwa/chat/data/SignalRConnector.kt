@@ -1,5 +1,6 @@
 package pwr.barwa.chat.data
 
+import android.util.Log
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
@@ -12,22 +13,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pwr.barwa.chat.data.dto.ChannelDto
 import pwr.barwa.chat.data.dto.MessageDto
-import pwr.barwa.chat.data.dto.MessageType
 import pwr.barwa.chat.data.dto.UserDto
 import pwr.barwa.chat.data.requests.CreateChannelRequest
 import pwr.barwa.chat.data.requests.SendMediaMessage
 import pwr.barwa.chat.data.requests.SendTextMessage
 import pwr.barwa.chat.services.AuthService
-import kotlin.jvm.java
+import java.util.UUID
 
-class SignalRConnector(public val token: String) {
+class SignalRConnector private constructor(private val token: String, private val instanceId: String = UUID.randomUUID().toString()) {
 
-    private val hubConnection: HubConnection by lazy {
-        HubConnectionBuilder
-            .create(AuthService.URL_BASE + "ws")
-            .withAccessTokenProvider(Single.just(token))
-            .build()
-    }
+    // Bezpośrednio inicjalizujemy połączenie przy tworzeniu instancji
+    private val hubConnection: HubConnection = createHubConnection()
 
     private val _messages = MutableStateFlow<List<MessageDto>>(emptyList())
     val messages: StateFlow<List<MessageDto>> = _messages
@@ -54,16 +50,29 @@ class SignalRConnector(public val token: String) {
     val onContactAdded = Event<UserDto>()
     val onUserAddedToChannel = Event<Triple<ChannelDto, UserDto, UserDto>>()
     val onChannelDeleted = Event<Long>()
+    val onCurrentUserReceived = Event<UserDto>()
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    private fun createHubConnection(): HubConnection {
+        println("Tworzę nowe połączenie SignalR dla instancji $instanceId z tokenem $token")
+        return HubConnectionBuilder
+            .create(AuthService.URL_BASE + "ws")
+            .withAccessTokenProvider(Single.just(token))
+            .build()
+    }
+
+
     suspend fun startConnection() {
-        //clear previous data
+        println("Rozpoczynam połączenie dla instancji $instanceId")
+
+        // Czyszczenie danych
         _messages.value = emptyList()
         _channels.value = emptyList()
         _contacts.value = emptyList()
         __users.value = emptyList()
         _currentUser.value = null
 
+        // Rejestracja zdarzeń
         hubConnection.on("ReceiveMessage", { message ->
             _messages.value += message
             onMessageReceived.invoke(message)
@@ -109,6 +118,7 @@ class SignalRConnector(public val token: String) {
             _contacts.value += user
             onContactAdded.invoke(user)
         }, UserDto::class.java)
+
         hubConnection.on("UserJoined", { channel: ChannelDto, user: UserDto, addedBy: UserDto ->
             _channels.value = _channels.value.map {
                 if (it.id == channel.id) it.copy(members = it.members + user.id) else it
@@ -121,23 +131,30 @@ class SignalRConnector(public val token: String) {
             onChannelDeleted.invoke(deletedChannelId)
         }, Long::class.java)
 
+        hubConnection.on("GetCurrentUser", { user: UserDto ->
+            Log.d("SignalRConnector", "Aktualny użytkownik odebrany: ${user.userName}, ID: ${user.id}")
+            _currentUser.value = user
+            onCurrentUserReceived.invoke(user)
+        }, UserDto::class.java)
+
         hubConnection.onClosed { error ->
-            println("Połączenie zostało utracone: ${error?.message}")
+            println("Połączenie zostało utracone dla instancji $instanceId: ${error?.message}")
             scope.launch {
                 reconnect()
             }
         }
-
         reconnect()
+        requestCurrentUser()
     }
-    private suspend fun reconnect(){
+
+    private suspend fun reconnect() {
         var retryCount = 0
-        val maxRetries = 5000
+        val maxRetries = 5
         val retryDelay = 2000L // 2 sekundy
 
         while (hubConnection.connectionState != HubConnectionState.CONNECTED && retryCount < maxRetries) {
             try {
-                println("Próba ponownego połączenia... ($retryCount)")
+                println("Próba ponownego połączenia dla instancji $instanceId... ($retryCount)")
                 hubConnection.start().blockingAwait()
                 println("Połączono ponownie!")
             } catch (e: Exception) {
@@ -148,66 +165,199 @@ class SignalRConnector(public val token: String) {
         }
 
         if (hubConnection.connectionState != HubConnectionState.CONNECTED) {
-            println("Nie udało się połączyć po $maxRetries próbach.")
+            println("Nie udało się połączyć po $maxRetries próbach dla instancji $instanceId.")
         }
     }
+
     fun stopConnection() {
-        hubConnection.stop()
-    }
-    fun sendMessage(message: SendTextMessage) {
-        hubConnection.send("SendMessage", message)
-    }
-    fun sendMediaMessage(message: SendMediaMessage) {
-        hubConnection.send("SendMediaMessage", message)
-    }
-    fun requestChannelList() {
-        hubConnection.send("GetChannels")
-    }
-    fun createChannel(createChannelRequest: CreateChannelRequest) {
-        hubConnection.send("CreateChannel", createChannelRequest)
-    }
-    fun addUserToChannel(channelId: Long, userId: Long) {
-        hubConnection.send("AddToChannel", channelId, userId)
-    }
-    fun getContactList() {
-        hubConnection.send("GetContacts")
-    }
-    fun addContact(userName: String) {
-        hubConnection.send("AddContact", userName)
-    }
-    fun getChannelMessages(channelId: Long, beforeMessageId: Long? = null, limit: Int = 50) {
-        hubConnection.send("GetChannelMessages", channelId, beforeMessageId, limit)
-    }
-    fun getChannelUsers(channelId: Long) {
-        hubConnection.send("GetChannelMembers", channelId)
-    }
-    fun getChannel(channelId: Long) {
-        hubConnection.send("GetChannel", channelId)
-    }
-    fun deleteChannel(channelId: Long) {
-        hubConnection.send("DeleteChannel", channelId) //lub chatId?
-    }
-    fun setCurrentUser(user: UserDto) {
-        _currentUser.value = user
-    }
-    fun getCurrentUser(): UserDto? = _currentUser.value
-
-
-    companion object {
-
-        @Volatile
-        private var Instance : SignalRConnector? = null
-        fun getInstance(token: String? = null): SignalRConnector {
-            if (Instance == null && token == null) {
-                throw IllegalArgumentException("Token must not be null")
+        try {
+            if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+                hubConnection.stop()
+                println("Połączenie zostało zatrzymane dla instancji $instanceId")
             }
-            return Instance ?: synchronized(this) {
-                Instance ?: SignalRConnector(token!!).also {
-                    Instance = it
+        } catch (e: Exception) {
+            println("Błąd podczas zatrzymywania połączenia dla instancji $instanceId: ${e.message}")
+        }
+    }
+
+
+    fun logout() {
+        try {
+            stopConnection()
+            println("Wylogowano użytkownika z instancji $instanceId")
+
+            _messages.value = emptyList()
+            _channels.value = emptyList()
+            _contacts.value = emptyList()
+            __users.value = emptyList()
+            _currentUser.value = null
+
+            // Usuń referencję do tej instancji
+            synchronized(companions) {
+                currentInstance.compareAndSet(this, null)
+                println("Usunięto referencję do instancji $instanceId z currentInstance")
+            }
+        } catch (e: Exception) {
+            println("Błąd podczas procesu wylogowania dla instancji $instanceId: ${e.message}")
+        }
+    }
+
+    // Metody do komunikacji z serwerem
+    fun sendMessage(message: SendTextMessage) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("SendMessage", message)
+        } else {
+            println("Brak połączenia dla instancji $instanceId - próbuję ponownie połączyć")
+            scope.launch {
+                reconnect()
+                if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+                    hubConnection.send("SendMessage", message)
+                    println("Ponowne połączenie nawiązane, wysłano wiadomość")
+                } else {
+                    println("Nie można wysłać wiadomości - wciąż brak połączenia dla instancji $instanceId")
                 }
             }
         }
+    }
 
+    fun sendMediaMessage(message: SendMediaMessage) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("SendMediaMessage", message)
+        } else {
+            println("Brak połączenia dla instancji $instanceId - próbuję ponownie połączyć")
+            scope.launch {
+                reconnect()
+                if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+                    hubConnection.send("SendMediaMessage", message)
+                    println("Ponowne połączenie nawiązane, wysłano wiadomość medialną")
+                } else {
+                    println("Nie można wysłać wiadomości medialnej - wciąż brak połączenia dla instancji $instanceId")
+                }
+            }
+        }
+    }
+
+    fun requestChannelList() {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetChannels")
+        } else {
+            println("Nie można pobrać listy kanałów - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun createChannel(createChannelRequest: CreateChannelRequest) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("CreateChannel", createChannelRequest)
+        } else {
+            println("Nie można utworzyć kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun addUserToChannel(channelId: Long, userId: Long) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("AddToChannel", channelId, userId)
+        } else {
+            println("Nie można dodać użytkownika do kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun getContactList() {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetContacts")
+        } else {
+            println("Nie można pobrać listy kontaktów - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun addContact(userName: String) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("AddContact", userName)
+        } else {
+            println("Nie można dodać kontaktu - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun getChannelMessages(channelId: Long, beforeMessageId: Long? = null, limit: Int = 50) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetChannelMessages", channelId, beforeMessageId, limit)
+        } else {
+            println("Nie można pobrać wiadomości kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun getChannelUsers(channelId: Long) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetChannelMembers", channelId)
+        } else {
+            println("Nie można pobrać użytkowników kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun getChannel(channelId: Long) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetChannel", channelId)
+        } else {
+            println("Nie można pobrać kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun deleteChannel(channelId: Long) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("DeleteChannel", channelId)
+        } else {
+            println("Nie można usunąć kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun requestCurrentUser() {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("GetCurrentUser")
+        } else {
+            println("Nie można pobrać aktualnego użytkownika - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun setCurrentUser(user: UserDto) {
+        _currentUser.value = user
+    }
+
+    fun getCurrentUser(): UserDto? = _currentUser.value
+
+    companion object {
+        // Przechowywanie aktualnej instancji jako AtomicReference dla bezpiecznego dostępu wielowątkowego
+        private val currentInstance = java.util.concurrent.atomic.AtomicReference<SignalRConnector?>(null)
+        private val companions = Any() // Obiekt do synchronizacji
+
+
+        fun getInstance(token: String? = null): SignalRConnector {
+            synchronized(companions) {
+                if (token != null) {
+                    val oldInstance = currentInstance.get()
+                    oldInstance?.stopConnection()
+
+                    val newInstance = SignalRConnector(token)
+                    println("Utworzono nową instancję SignalRConnector (ID: ${newInstance.instanceId})")
+
+                    currentInstance.set(newInstance)
+                    return newInstance
+                }
+
+                currentInstance.get()?.let { return it }
+
+                throw IllegalStateException("SignalRConnector nie został zainicjalizowany. Najpierw zaloguj się.")
+            }
+        }
+
+        fun removeInstance() {
+            synchronized(companions) {
+                val instance = currentInstance.getAndSet(null)
+                instance?.stopConnection()
+                println("Usunięto instancję SignalRConnector")
+            }
+        }
+
+        fun hasActiveConnection(): Boolean {
+            return currentInstance.get() != null
+        }
     }
 }
-

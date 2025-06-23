@@ -116,16 +116,10 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
             throw new InvalidOperationException("You are not a member of this channel");
         }
 
-        var message = await mediaService.SaveMedia(msg);
-        message.SenderId = id;
-        message.ChannelId = msg.ChannelId;
-        message.Created = DateTimeOffset.UtcNow;
-        
-        dbContext.Messages.Add(message);
-        await dbContext.SaveChangesAsync();
+
+        var message = await mediaService.SaveMedia(msg, id);
         
         await Clients.Group(channel.Id.ToString()).ReceiveMessage(message.ToDto());
-        
     }
 
     public async Task<List<Channel>> GetChannels()
@@ -217,13 +211,14 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
         var user = await dbContext.Users
             .Include(u => u.Contacts)
+            .ThenInclude(x=> x.Other)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null)
         {
             throw new InvalidOperationException("User not found");
         }
-        await Clients.Caller.GetContacts(user.Contacts.Select(c => c.ToDto()).ToList());
-        return user.Contacts;
+        await Clients.Caller.GetContacts(user.Contacts.Select(c => c.Other.ToDto()).ToList());
+        return user.Contacts.Select(x=>x.Other).ToList();
     }
     
     public async Task AddContact(string userName)
@@ -241,12 +236,16 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
             throw new InvalidOperationException("Contact not found");
         }
         
-        if (user.Contacts.Any(c => c.Id == contact.Id))
+        if (user.Contacts.Any(c => c.OtherId == contact.Id))
         {
             throw new InvalidOperationException("Contact already exists");
         }
         
-        user.Contacts.Add(contact);
+        user.Contacts.Add(new Contact
+        {
+            OtherId = contact.Id,
+            UserId = user.Id
+        });
         await dbContext.SaveChangesAsync();
         if (UserConnections.TryGetValue(contact.Id, out var connections))
         {
@@ -374,4 +373,3 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         await Clients.Group(channelId.ToString()).ChannelDeleted(channelId);
     }
 }
-

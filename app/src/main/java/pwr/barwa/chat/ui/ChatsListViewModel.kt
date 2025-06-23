@@ -33,26 +33,42 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
     private val _uploadError = MutableStateFlow<String?>(null)
     val uploadError: StateFlow<String?> = _uploadError
 
+    // Dodajemy stan odświeżania
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         loadChats()
+
+        // Pobierz dane o aktualnym użytkowniku
+        signalRConnector.requestCurrentUser()
+
         signalRConnector.onChannelListReceived.addListener("ChatsListView", { channels ->
-            _chats.value = sortChannels(channels)
+            _chats.value = sortChannels(distinctById(channels))
         })
 
         signalRConnector.onChannelCreated.addListener("ChatsListView", { channel ->
             Log.d("ChatsListViewModel", "Nowy czat utworzony: ${channel.name}, ID: ${channel.id}")
-            _newChatIds.value = _newChatIds.value + channel.id
 
-            viewModelScope.launch {
-                delay(2000)
-                _newChatIds.value = _newChatIds.value - channel.id
-                Log.d("ChatsListViewModel", "Usunięto ID z animacji: ${channel.id}")
+            // Sprawdź czy kanał z takim ID już istnieje na liście
+            if (_chats.value.none { it.id == channel.id }) {
+                _newChatIds.value = _newChatIds.value + channel.id
+                // Aktualizuj listę czatów dodając tylko ten nowy kanał i eliminując ewentualne duplikaty
+                _chats.value = sortChannels(distinctById(_chats.value + channel))
+
+                viewModelScope.launch {
+                    delay(2000)
+                    _newChatIds.value = _newChatIds.value - channel.id
+                    Log.d("ChatsListViewModel", "Usunięto ID z animacji: ${channel.id}")
+                }
+            } else {
+                Log.d("ChatsListViewModel", "Kanał o ID: ${channel.id} już istnieje, ignoruję")
             }
         })
 
         viewModelScope.launch {
             signalRConnector.channels.collect { channels ->
-                _chats.value = sortChannels(channels)
+                _chats.value = sortChannels(distinctById(channels))
             }
         }
     }
@@ -65,6 +81,11 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
                 else -> channel.created
             }
         }
+    }
+
+    // Funkcja pomocnicza do eliminowania duplikatów przez ID
+    private fun distinctById(channels: List<ChannelDto>): List<ChannelDto> {
+        return channels.distinctBy { it.id }
     }
 
     fun removeListeners() {
@@ -84,7 +105,14 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
 
     fun loadChats() {
         viewModelScope.launch {
-            signalRConnector.requestChannelList()
+            try {
+                _isRefreshing.value = true
+                signalRConnector.requestChannelList()
+            } finally {
+                // Dodajemy małe opóźnienie, aby animacja odświeżania była widoczna
+                delay(500)
+                _isRefreshing.value = false
+            }
         }
     }
 
@@ -97,7 +125,7 @@ class ChatsListViewModel(private val signalRConnector: SignalRConnector) : ViewM
                 signalRConnector.createChannel(
                     CreateChannelRequest(
                         Name = chatName,
-                        UserIds = listOf(), // Add members if needed
+                        UserIds = listOf(userId), // Add members if needed
                         Image = imageString // Add image if needed
                     )
                 )
