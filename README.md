@@ -38,34 +38,34 @@ sequenceDiagram
 
 3. Technologie i narzędzia
 
-Język programowania: Kotlin
-Środowisko IDE: Android Studio
-Framework UI: Jetpack Compose
-Backend: 
-Komunikacja: SignalR (WebSocket)
-Baza danych: 
-Kontrola wersji: Git + GitHub/GitLab
+- Język programowania: Kotlin
+- Środowisko IDE: Android Studio
+- Framework UI: Jetpack Compose
+- Backend: 
+- Komunikacja: SignalR (WebSocket)
+- Baza danych: 
+- Kontrola wersji: Git + GitHub/GitLab
 
 4. Warstwy aplikacji
 
 a) Frontend (Klient)
 
-Technologie: Jetpack Compose (Android)
-Stan aplikacji: StateFlow (Android)
-Komunikacja z backendem: SignalR (czas rzeczywisty).
+- Technologie: Jetpack Compose (Android)
+- Stan aplikacji: StateFlow (Android)
+- Komunikacja z backendem: SignalR (czas rzeczywisty).
 
 b) Backend
 
 Serwer: 
-Autentykacja:
-Baza danych: 
-Cache: 
+- Autentykacja:
+- Baza danych: 
+- Cache: 
 
 4. Wzorce architektoniczne
 
-a) MVVM (Model-View-ViewModel) – separacja logiki od UI.
-b) Backend (serwer) – 
-c) Warstwa komunikacji –  SignalR
+-  MVVM (Model-View-ViewModel) – separacja logiki od UI.
+-  Backend (serwer) – 
+-  Warstwa komunikacji –  SignalR
 
 6. Kluczowe decyzje techniczne
    
