@@ -1,4 +1,8 @@
+# TwitteR
+
 1. Wstęp
+
+Link do pierwszej wersji UI: https://www.figma.com/proto/btgckNoyRgjbpxcMKUCrW5/Untitled?node-id=1-1588&p=f&t=sQGpdeyGcO0luDZ0-0&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1 
 
 Cel aplikacji: "Umożliwia użytkownikom komunikację w czasie rzeczywistym za pomocą wiadomości tekstowych, zarówno w rozmowach indywidualnych, jak i grupowych".
 
