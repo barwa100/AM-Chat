@@ -13,8 +13,6 @@ Główne funkcje:
 Użytkownicy docelowi: "Osoby prywatne i zespoły szukające prostego i szybkiego narzędzia do komunikacji mobilnej."
 
 2. Diagram architektury
-   
-![Diagram](diagram1.png)
 
 # Architektura aplikacji mobilnej z wykorzystaniem SignalR i .NET
 
