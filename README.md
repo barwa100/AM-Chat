@@ -41,9 +41,9 @@ sequenceDiagram
 - Język programowania: Kotlin
 - Środowisko IDE: Android Studio
 - Framework UI: Jetpack Compose
-- Backend: 
+- Backend: serwer.NET, Room
 - Komunikacja: SignalR (WebSocket)
-- Baza danych: 
+- Baza danych: SQlite
 - Kontrola wersji: Git + GitHub/GitLab
 
 4. Warstwy aplikacji
@@ -64,7 +64,7 @@ Serwer:
 4. Wzorce architektoniczne
 
 -  MVVM (Model-View-ViewModel) – separacja logiki od UI.
--  Backend (serwer) – 
+-  Backend (serwer) – .NET
 -  Warstwa komunikacji –  SignalR
 
 6. Kluczowe decyzje techniczne
@@ -89,7 +89,7 @@ Dlaczego Jetpack Compose?
 Clean Architecture + MVVM
 Dlaczego ta struktura?
 - Separacja warstw – Jasny podział na:
-    i. Data (SignalR, Firebase, Room)
+    i. Data (SignalR, Room, .NET)
     ii. Domain (logika biznesowa, use cases)
     iii. UI (Compose + ViewModel)
 - Testowalność – Mockowanie zależności jest prostsze dzięki interfejsom.
@@ -98,7 +98,7 @@ Dlaczego ta struktura?
    
 Użytkownik tworzy kanał → wysyłane jest żądanie REST API.
 
-Serwer zapisuje kanał w PostgreSQL i emituje zdarzenie SignalR "ChannelCreated".
+Serwer zapisuje kanał w SQLite i emituje zdarzenie SignalR "ChannelCreated".
 
 Wszyscy klienci otrzymują aktualizację przez WebSocket.
 
@@ -140,23 +140,21 @@ Dodatkowo:
    -  Rejestracja i logowanie
     
        i. Użytkownik może założyć nowe konto.
-       ii. Użytkownik otrzymuje błąd przy nieprawidłowych danych (np. zbyt krótki login).
-       iii. Użytkownik może zalogować się poprawnym logiinem i hasłem.
-       iv. Użytkownik nie może zalogować się błędnymi danymi.
+       ii. Użytkownik może zalogować się poprawnym loginem i hasłem.
+       iii. Użytkownik nie może zalogować się błędnymi danymi.
 
    - Lista kontaktów
     
-       i. Wyświetla się lista dostępnych kontaktów.
-       ii. Użytkownik może wyszukać kontakt po nazwie.
-       iii. Użytkownik może dodać kontakt.
+       i. Wyświetla się lista dostępnych kontaktów wraz z ich awatarami.
+       ii. Użytkownik może dodać kontakt.
 
    - Czat 1:1
     
        i. Użytkownik może rozpocząć nowy czat z wybranym kontaktem.
        ii. Wiadomości tekstowe są poprawnie wysyłane i odbierane.
        iii. Wiadomości są wyświetlane w kolejności chronologicznej.
-      
-       iv. Wiadomości mają status „wysłano”, „odebrano”.
+       iv. Można dodać osobę do istniejacego czatu.
+        v. Można zmienić nazwę czatu.
 
    - Czat grupowy
     
@@ -168,5 +166,4 @@ Dodatkowo:
    - Załączniki i multimedia
     
        i. Można dodać zdjęcie lub inne multimedia do wiadomości.
-       ii. Można ustawić/zmienić awatar użytkownika.
-       iii. Pliki są poprawnie ładowane i wyświetlane.
+       ii. Pliki są poprawnie ładowane i wyświetlane.
