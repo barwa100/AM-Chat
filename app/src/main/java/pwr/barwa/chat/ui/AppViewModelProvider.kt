@@ -41,7 +41,10 @@ object AppViewModelProvider {
             ContactsViewModel(chatApplication().container.signalRConnector)
         }
         initializer {
-            MyProfileViewModel(chatApplication().container.signalRConnector)
+            MyProfileViewModel(
+                signalRConnector = chatApplication().container.signalRConnector,
+                context = chatApplication().applicationContext
+            )
         }
     }
 }

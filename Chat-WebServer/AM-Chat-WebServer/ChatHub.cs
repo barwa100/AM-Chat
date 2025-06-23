@@ -372,4 +372,83 @@ public class ChatHub(ChatDbContext dbContext, MediaService mediaService) : Hub<I
         
         await Clients.Group(channelId.ToString()).ChannelDeleted(channelId);
     }
+
+    public async Task RenameChannel(long channelId, string newName)
+    {
+        var id = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var channel = await dbContext.Channels
+            .Include(c => c.Members)
+            .FirstOrDefaultAsync(c => c.Id == channelId);
+        if (channel == null)
+        {
+            throw new InvalidOperationException("Channel not found");
+        }
+
+        if (!channel.Members.Any(u => u.Id == id))
+        {
+            throw new InvalidOperationException("You are not a member of this channel");
+        }
+
+        var oldName = channel.Name;
+
+        channel.Name = newName;
+        await dbContext.SaveChangesAsync();
+
+        var user = await dbContext.Users.FindAsync(id);
+        var message = new Message
+        {
+            ChannelId = channelId,
+            Type = MessageType.Text,
+            Data = $"{user.UserName} zmienił nazwę kanału z \"{oldName}\" na \"{newName}\"",
+            Created = DateTimeOffset.UtcNow,
+            SenderId = id
+        };
+
+        dbContext.Messages.Add(message);
+        await dbContext.SaveChangesAsync();
+
+        await Clients.Group(channelId.ToString()).ChannelNameChanged(channelId, newName);
+        await Clients.Group(channelId.ToString()).ReceiveMessage(message.ToDto());
+
+        await Clients.Group(channelId.ToString()).GetChannel(channel.ToDto());
+    }
+
+    public async Task ChangeUserAvatar(string avatarDataBase64, string extension)
+    {
+        var userId = long.Parse(Context.UserIdentifier ?? throw new InvalidOperationException("UserIdentifier is null"));
+        var user = await dbContext.Users.FindAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException("User not found");
+        }
+
+        try
+        {
+            // Konwersja base64 na tablicę bajtów
+            byte[] avatarData = Convert.FromBase64String(avatarDataBase64);
+
+            // Zapisanie pliku awatara
+            if (!Directory.Exists(MediaService.Path))
+                Directory.CreateDirectory(MediaService.Path);
+
+            var fileName = $"avatar_{user.Id}.{extension}";
+            var filePath = Path.Combine(MediaService.Path, fileName);
+
+            await File.WriteAllBytesAsync(filePath, avatarData);
+
+            // Aktualizacja ścieżki do awatara w bazie danych
+            user.AvatarUrl = $"Media/{fileName}";
+            await dbContext.SaveChangesAsync();
+
+            // Powiadomienie wszystkich użytkowników o zmianie awatara
+            await Clients.All.UserAvatarChanged(user.Id, user.AvatarUrl);
+
+            // Wysłanie zaktualizowanego użytkownika do osoby zmieniającej awatar
+            await Clients.Caller.GetCurrentUser(user.ToDto());
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to update avatar: {ex.Message}");
+        }
+    }
 }

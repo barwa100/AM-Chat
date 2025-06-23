@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +44,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -133,6 +137,8 @@ fun ChatDetailsScreen(
 
     var text by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var newChatName by remember { mutableStateOf("") }
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(messages.size) {
@@ -226,6 +232,20 @@ fun ChatDetailsScreen(
                             onClick = {
                                 showMenu = false
                                 onNavigateToEditChat(chatId)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Zmień nazwę czatu") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                showRenameDialog = true
                             }
                         )
                     }
@@ -337,6 +357,35 @@ fun ChatDetailsScreen(
                 }
             }
         }
+    }
+
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Zmień nazwę czatu") },
+            text = {
+                OutlinedTextField(
+                    value = newChatName,
+                    onValueChange = { newChatName = it },
+                    label = { Text("Nowa nazwa czatu") }
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.renameChat(newChatName)
+                        showRenameDialog = false
+                    }
+                ) {
+                    Text("Zmień")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) {
+                    Text("Anuluj")
+                }
+            }
+        )
     }
 }
 

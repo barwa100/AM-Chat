@@ -50,6 +50,8 @@ class SignalRConnector private constructor(private val token: String, private va
     val onContactAdded = Event<UserDto>()
     val onUserAddedToChannel = Event<Triple<ChannelDto, UserDto, UserDto>>()
     val onChannelDeleted = Event<Long>()
+    val onChannelNameChanged = Event<Pair<Long, String>>()
+    val onUserAvatarChanged = Event<Pair<Long, String>>()
     val onCurrentUserReceived = Event<UserDto>()
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -130,6 +132,20 @@ class SignalRConnector private constructor(private val token: String, private va
             _channels.value = _channels.value.filter { it.id != deletedChannelId }
             onChannelDeleted.invoke(deletedChannelId)
         }, Long::class.java)
+
+        hubConnection.on("ChannelNameChanged", { channelId: Long, newName: String ->
+            _channels.value = _channels.value.map {
+                if (it.id == channelId) it.copy(name = newName) else it
+            }
+            onChannelNameChanged.invoke(Pair(channelId, newName))
+        }, Long::class.java, String::class.java)
+
+        hubConnection.on("UserAvatarChanged", { userId: Long, newAvatarUrl: String ->
+            _contacts.value = _contacts.value.map {
+                if (it.id == userId) it.copy(avatarUrl = newAvatarUrl) else it
+            }
+            onUserAvatarChanged.invoke(Pair(userId, newAvatarUrl))
+        }, Long::class.java, String::class.java)
 
         hubConnection.on("GetCurrentUser", { user: UserDto ->
             Log.d("SignalRConnector", "Aktualny użytkownik odebrany: ${user.userName}, ID: ${user.id}")
@@ -306,6 +322,31 @@ class SignalRConnector private constructor(private val token: String, private va
             hubConnection.send("DeleteChannel", channelId)
         } else {
             println("Nie można usunąć kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun renameChannel(channelId: Long, newName: String) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("RenameChannel", channelId, newName)
+        } else {
+            println("Nie można zmienić nazwy kanału - brak połączenia dla instancji $instanceId")
+        }
+    }
+
+    fun changeUserAvatar(avatarDataBase64: String, extension: String) {
+        if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+            hubConnection.send("ChangeUserAvatar", avatarDataBase64, extension)
+        } else {
+            println("Nie można zmienić awatara użytkownika - brak połączenia dla instancji $instanceId")
+            scope.launch {
+                reconnect()
+                if (hubConnection.connectionState == HubConnectionState.CONNECTED) {
+                    hubConnection.send("ChangeUserAvatar", avatarDataBase64, extension)
+                    println("Ponowne połączenie nawiązane, wysłano żądanie zmiany awatara")
+                } else {
+                    println("Nie można zmienić awatara użytkownika - wciąż brak połączenia dla instancji $instanceId")
+                }
+            }
         }
     }
 

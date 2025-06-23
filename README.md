@@ -106,6 +106,8 @@ Frontend aktualizuje UI (StateFlow/LiveData).
 
 8. Wykorzystane biblioteki:
 
+Ikony: https://fonts.google.com/icons
+
 Interfejs Użytkownika i Kompozycja:
 
 - androidx.compose.ui:ui-tooling-android

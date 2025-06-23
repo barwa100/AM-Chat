@@ -31,6 +31,29 @@ public class MediaService(ChatDbContext dbContext)
         file.Close();
         return message;
     }
+    public async Task<User?> ChangeAvatar(IFormFile file, long userId)
+    {
+        if (file == null || file.Length == 0)
+            return null;
+
+        var user = await dbContext.Users.FindAsync(userId);
+        if (user == null)
+            return null;
+
+        if (!Directory.Exists(Path))
+            Directory.CreateDirectory(Path);
+        var filePath = System.IO.Path.Combine(Path, user.Id + System.IO.Path.GetExtension(file.FileName).ToLowerInvariant());
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        user.AvatarUrl = "media/" + user.Id + System.IO.Path.GetExtension(file.FileName).ToLowerInvariant();
+        dbContext.Update(user);
+        await dbContext.SaveChangesAsync();
+        
+        return user;
+    }
 
     public FileStream? GetMedia(string message)
     {

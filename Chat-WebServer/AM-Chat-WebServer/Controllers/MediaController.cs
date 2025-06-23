@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 
@@ -25,5 +26,29 @@ public class MediaController(MediaService mediaService) : ControllerBase
         }
 
         return NotFound();
+    }
+    
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> ChangeAvatar([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        var userId = User.FindFirst("id")?.Value;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var user = await mediaService.ChangeAvatar(file, long.Parse(userId));
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(user.ToDto());
     }
 }

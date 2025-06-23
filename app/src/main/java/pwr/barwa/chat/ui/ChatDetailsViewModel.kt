@@ -45,11 +45,9 @@ class ChatDetailsViewModel(
     private val _localMediaPaths = MutableStateFlow<Map<Long, String>>(emptyMap())
     val localMediaPaths: StateFlow<Map<Long, String>> = _localMediaPaths
 
-    // Stan przechowujący ID nowych wiadomości (do animacji)
     private val _newMessageIds = MutableStateFlow<Set<Long>>(emptySet())
     val newMessageIds: StateFlow<Set<Long>> = _newMessageIds
 
-    // Usługa do zarządzania mediami
     private val mediaStorageService = MediaStorageService(context)
 
     init {
@@ -58,20 +56,17 @@ class ChatDetailsViewModel(
         })
 
         signalRConnector.onChannelMessagesReceived.addListener("ChatDetailsView", { messages ->
-            // Zapisz aktualną listę wiadomości, aby móc porównać ją z nową i znaleźć nowe wiadomości
             val currentMessages = _channelMessages.value
             val newMessages = messages.filter { newMessage ->
                 currentMessages.none { it.id == newMessage.id }
             }
 
-            // Dodaj nowe wiadomości do listy wiadomości do animacji
             if (newMessages.isNotEmpty()) {
                 val newIds = newMessages.map { it.id }.toSet()
                 _newMessageIds.value = _newMessageIds.value + newIds
             }
 
             _channelMessages.value = messages
-            // Po otrzymaniu wiadomości, rozpocznij pobieranie mediów
             downloadMediaForMessages(messages)
         })
 
@@ -79,7 +74,13 @@ class ChatDetailsViewModel(
             _channelMembers.value = members
         })
 
-        // Zbieranie aktualizacji z SignalR flows
+        // Dodanie listener'a dla zdarzenia zmiany nazwy kanału
+        signalRConnector.onChannelNameChanged.addListener("ChatDetailsView", { (channelId, newName) ->
+            if (_selectedChat.value?.id == channelId) {
+                _selectedChat.value = _selectedChat.value?.copy(name = newName)
+            }
+        })
+
         viewModelScope.launch {
             signalRConnector.messages.collect { messages ->
                 if (_selectedChat.value != null) {
@@ -116,24 +117,17 @@ class ChatDetailsViewModel(
         }
     }
 
-    /**
-     * Pobieranie mediów dla wiadomości z załącznikami
-     */
     private fun downloadMediaForMessages(messages: List<MessageDto>) {
-        // Pobieraj tylko wiadomości z załącznikami mediów
         val mediaMessages = messages.filter { it.type != MessageType.TEXT }
 
         if (mediaMessages.isEmpty()) return
 
         viewModelScope.launch {
-            // Dla każdej wiadomości z mediami, sprawdź czy już została pobrana
             mediaMessages.forEach { messageDto ->
-                // Jeśli już mamy ścieżkę lokalną dla tej wiadomości, pomijamy
                 if (_localMediaPaths.value.containsKey(messageDto.id)) {
                     return@forEach
                 }
 
-                // Konwertuj MessageDto na Message
                 val message = Message(
                     id = messageDto.id,
                     chatId = messageDto.channelId,
@@ -151,10 +145,8 @@ class ChatDetailsViewModel(
                     mediaUrl = AuthService.URL_BASE + "Media/" + messageDto.id + "." + messageDto.data
                 )
 
-                // Pobierz medium
                 mediaStorageService.downloadAndSaveMedia(message).fold(
                     onSuccess = { localPath ->
-                        // Zaktualizuj mapę lokalnych ścieżek
                         val updatedPaths = _localMediaPaths.value.toMutableMap()
                         updatedPaths[messageDto.id] = localPath
                         _localMediaPaths.value = updatedPaths
@@ -169,9 +161,6 @@ class ChatDetailsViewModel(
         }
     }
 
-    /**
-     * Pobierz wszystkie media dla aktualnych wiadomości
-     */
     fun downloadAllPendingMedia() {
         viewModelScope.launch {
             mediaStorageService.downloadAllPendingMedia().collectLatest { progress ->
@@ -180,9 +169,7 @@ class ChatDetailsViewModel(
         }
     }
 
-    /**
-     * Pobierz Uri do lokalnego pliku
-     */
+
     fun getMediaUri(messageId: Long): Uri? {
         val localPath = _localMediaPaths.value[messageId] ?: return null
         return mediaStorageService.getMediaUri(localPath)
@@ -254,20 +241,30 @@ class ChatDetailsViewModel(
         }
     }
 
-    // Funkcja zwracająca aktualnego zalogowanego użytkownika
     fun getCurrentUser() = signalRConnector.getCurrentUser()
 
-    /**
-     * Sprawdza, czy wiadomość jest nowa i powinna być animowana
-     */
     fun isNewMessage(messageId: Long): Boolean {
         return _newMessageIds.value.contains(messageId)
     }
 
-    /**
-     * Oznacza wiadomość jako już nie nową (po wyświetleniu animacji)
-     */
     fun markMessageDisplayed(messageId: Long) {
         _newMessageIds.value = _newMessageIds.value - messageId
+    }
+
+    fun renameChat(newName: String) {
+        val chatId = _selectedChat.value?.id ?: return
+
+        if (newName.isBlank()) {
+            _errorMessage.value = "Nazwa czatu nie może być pusta"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                signalRConnector.renameChannel(chatId, newName)
+            } catch (e: Exception) {
+                _errorMessage.value = "Błąd podczas zmiany nazwy czatu: ${e.message}"
+            }
+        }
     }
 }

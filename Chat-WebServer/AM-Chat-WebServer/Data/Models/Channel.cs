@@ -9,7 +9,7 @@ public class Channel
     public List<Message> Messages { get; set; } = new();
     public string Name { get; set; }
     public DateTimeOffset Created { get; set; }
-    
+
     public ChannelDTO ToDto()
     {
         return new ChannelDTO

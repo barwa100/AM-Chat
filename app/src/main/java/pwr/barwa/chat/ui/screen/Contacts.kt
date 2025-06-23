@@ -66,6 +66,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.graphics.Color
 import pwr.barwa.chat.data.dto.UserDto
+import pwr.barwa.chat.services.AuthService
 import pwr.barwa.chat.ui.AppViewModelProvider
 import pwr.barwa.chat.ui.ContactsViewModel
 
@@ -290,7 +291,6 @@ fun Contacts(
 fun ContactItem(user: UserDto, isNewContact: Boolean = false) {
     val isVisible = remember { androidx.compose.animation.core.Animatable(if (isNewContact) 0f else 1f) }
 
-    // Wykonaj animację po pierwszym złożeniu
     LaunchedEffect(user.id, isNewContact) {
         if (isNewContact) {
             isVisible.snapTo(0f)
@@ -309,7 +309,6 @@ fun ContactItem(user: UserDto, isNewContact: Boolean = false) {
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .graphicsLayer {
-                // Zastosuj animację tylko dla nowych elementów
                 if (isNewContact) {
                     translationX = (1f - isVisible.value) * (-500f)  // Przesuń z lewej strony
                     alpha = isVisible.value                          // Przezroczystość
@@ -360,15 +359,13 @@ fun ContactAvatar(user: UserDto, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         if (!user.avatarUrl.isNullOrEmpty()) {
-            // Wyświetl awatar z URL jeśli jest dostępny
             AsyncImage(
-                model = user.avatarUrl,
+                model = AuthService.URL_BASE + user.avatarUrl,
                 contentDescription = "Contact avatar",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
-            // Wyświetl domyślną ikonę jeśli nie ma awatara
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Contact avatar",
